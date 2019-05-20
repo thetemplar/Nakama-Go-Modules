@@ -3,25 +3,7 @@ package main
 import (
 	"math"
 	"fmt"
-	"math/rand"
 )
-
-func randomInt(min, max int32) int32 {
-    return min + rand.Int31n(max-min)
-}
-func typeof(v interface{}) string {
-	return fmt.Sprintf("%T", v)
-}
-func containsEffectId(auras []*PublicMatchState_Aura, id int64, creator string) int64 {
-	i := int64(-1)
-    for _, a := range auras {
-		i++
-        if a.EffectId == id && a.Creator == creator{
-            return i
-        }
-    }
-    return -1
-}
 
 func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMatchState_Projectile, tickrate int) {
 	target := state.PublicMatchState.Interactable[projectile.Target]					
@@ -54,7 +36,7 @@ func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchS
 	for _, effect := range spell.Effect { 
 		fmt.Printf("Apply Effect on Hit %v\n", effect)
 		if effect.Duration > 0 {
-			i := containsEffectId(target.Auras, effect.Id, projectile.Creator)
+			i := target.containsEffectId(effect.Id, projectile.Creator)
 			if i == -1 {
 				aura := &PublicMatchState_Aura{
 					CreatedAtTick: state.PublicMatchState.Tick,

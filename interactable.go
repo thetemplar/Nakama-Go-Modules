@@ -21,6 +21,17 @@ func (p PublicMatchState_Interactable) applyDamage(dmg int32) (overkill int32){
 	return overkill
 }
 
+func (p PublicMatchState_Interactable) containsEffectId(id int64, creator string) int64 {
+	i := int64(-1)
+    for _, a := range p.Auras {
+		i++
+        if a.EffectId == id && a.Creator == creator{
+            return i
+        }
+    }
+    return -1
+}
+
 //casts
 func (p PublicMatchState_Interactable) startCast(state *MatchState, spellId int64) {
 	currentPlayerInternal := p.getInternalPlayer(state)

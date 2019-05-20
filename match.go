@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"math"
 	"time"
 	"database/sql"
 	"github.com/heroiclabs/nakama/runtime"
@@ -103,10 +102,7 @@ func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 		state.(*MatchState).PublicMatchState.Interactable[presence.GetUserId()] = &PublicMatchState_Interactable{
 			Id: presence.GetUserId(),
 			Type: PublicMatchState_Interactable_Player,
-			Position: &PublicMatchState_Vector2Df {
-				X: 22,
-				Y: 7.555557,
-			},
+			Position: &PublicMatchState_Vector2Df { },
 			CurrentHealth: 100,
 			CurrentPower: 100,
 			MaxHealth: 100,
@@ -140,20 +136,7 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	return state
 }
 
-func PublicMatchState_Vector2Df_Rotate(v PublicMatchState_Vector2Df, degrees float32) PublicMatchState_Vector2Df {
-	ca := float32(math.Cos(float64(360 - degrees) * 0.01745329251)); //0.01745329251
-	sa := float32(math.Sin(float64(360 - degrees) * 0.01745329251));
-
-	vec := PublicMatchState_Vector2Df {
-		X: ca * v.X - sa * v.Y,
-		Y: sa * v.X + ca * v.Y,
-	}
-
-	return vec
-}
-
-
-func PerformInputs(logger runtime.Logger, state interface{}, message runtime.MatchData, tickrate int) {
+func PerformMovement(logger runtime.Logger, state interface{}, message runtime.MatchData, tickrate int) {
 	if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
 		return
 	}
@@ -165,7 +148,6 @@ func PerformInputs(logger runtime.Logger, state interface{}, message runtime.Mat
 		logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
 	}
 
-	//ClientState := state.(*MatchState).OldMatchState[msg.ServerTickPerformingOn]
 	add := PublicMatchState_Vector2Df {
 		X: msg.XAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
 		Y: msg.YAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
@@ -185,8 +167,7 @@ func PerformInputs(logger runtime.Logger, state interface{}, message runtime.Mat
 
 	//am i still in my triangle?	
 	if currentPlayerInternal.TriangleIndex >= 0 {
-		isItIn, w1, w2, w3 := state.(*MatchState).Map.Triangles[currentPlayerInternal.TriangleIndex].isInTriangle(currentPlayerPublic.Position)
-		fmt.Printf("am i still in my triangle?: %v %v (w1:%v  w2:%v  w3:%v)\n", currentPlayerInternal.TriangleIndex, isItIn, w1, w2, w3)
+		isItIn, _, _, _ := state.(*MatchState).Map.Triangles[currentPlayerInternal.TriangleIndex].isInTriangle(currentPlayerPublic.Position)
 		if !isItIn {
 			currentPlayerInternal.TriangleIndex = -1
 		}
@@ -197,16 +178,14 @@ func PerformInputs(logger runtime.Logger, state interface{}, message runtime.Mat
 		//find triangle I am in
 		found := false
 		for i, triangle := range state.(*MatchState).Map.Triangles {
-			isItIn, w1, w2, w3 := triangle.isInTriangle(currentPlayerPublic.Position)
+			isItIn, _, _, _ := triangle.isInTriangle(currentPlayerPublic.Position)
 			if isItIn {
 				currentPlayerInternal.TriangleIndex = int64(i)
 				found = true
-				fmt.Printf("triangle.isInTriangle: %v  (w1:%v  w2:%v  w3:%v)\n", i, w1, w2, w3)
 				break;
 			}
 		}
 		if !found {
-			fmt.Printf("ERROR @ triangle.isInTriangle %v|%v\n", currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y )
 			currentPlayerPublic.Position.X -= rotatedAdd.X;
 			currentPlayerPublic.Position.Y -= rotatedAdd.Y;
 		} 
@@ -226,7 +205,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	state.(*MatchState).PublicMatchState.Combatlog = make([]*PublicMatchState_CombatLogEntry, 0)
 	tickrate := ctx.Value(runtime.RUNTIME_CTX_MATCH_TICK_RATE).(int);
 
-	
+	//clear for new loop (finish cast & substract gcd)
 	for _, player := range state.(*MatchState).InternalPlayer {		
 		if player == nil || player.CastingSpellId <= 0 {
 			continue
@@ -253,6 +232,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			state.(*MatchState).InternalPlayer[message.GetUserId()].MessageCountThisFrame++
 		}
 	}
+
 	//get new inputs
 	for _, message := range messages { 
 		//logger.Printf("message from %v with opcode %v", message.GetUserId(), message.GetOpCode())
@@ -268,7 +248,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			currentPlayerInternal.LastMessageServerTick = tick
 			currentPlayerInternal.MissingCount = 0
 			
-			PerformInputs(logger, state, currentPlayerInternal.LastMessage, tickrate)
+			PerformMovement(logger, state, currentPlayerInternal.LastMessage, tickrate)
 		} else if message.GetOpCode() == 1 {
 			msg := &Client_Cast{}
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
@@ -288,7 +268,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if player.MissingCount > 1 && player.LastMessage != nil {
 				player.MessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
-				PerformInputs(logger, state, player.LastMessage, tickrate)
+				PerformMovement(logger, state, player.LastMessage, tickrate)
 			}
 		}
 	}
@@ -365,13 +345,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		projectile.Run(state.(*MatchState), projectile, tickrate)		
 	}
 
-	for _, npc := range state.(*MatchState).PublicMatchState.Interactable {		
-		if npc == nil || npc.Type == PublicMatchState_Interactable_Player {
-			continue
-		}
-
-	}
-
 	//send new game state (by creating protobuf message)
 	for _, player := range state.(*MatchState).InternalPlayer {		
 		if player == nil || player.Presence == nil {
@@ -393,27 +366,31 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	//historyCopy := state.(*MatchState).PublicMatchState
 	//state.(*MatchState).OldMatchState[tick] = historyCopy
 
-
-
 	//end if no ones sending smth (all dc'ed)
-	if len(messages) == 0 {
-		state.(*MatchState).EmptyCounter = state.(*MatchState).EmptyCounter + 1;
-	} else {
-		state.(*MatchState).EmptyCounter = 0
+	if true {
+		if len(messages) == 0 {
+			state.(*MatchState).EmptyCounter = state.(*MatchState).EmptyCounter + 1;
+		} else {
+			state.(*MatchState).EmptyCounter = 0
+		}
+		
+		if state.(*MatchState).EmptyCounter == 10 {
+			return nil
+		}
 	}
-	
-	if state.(*MatchState).EmptyCounter == 10 {
-		return nil
+
+	//calc loop runtime
+	if true {
+		state.(*MatchState).runtimeSet[state.(*MatchState).runtimeSetIndex] = int64(time.Since(start))
+		avg := int64(0)
+		for _, time := range state.(*MatchState).runtimeSet {
+			avg += time
+		}
+		avg /= 20
+		state.(*MatchState).runtimeSetIndex = (state.(*MatchState).runtimeSetIndex + 1) % 20
+		fmt.Printf(" - - duration %v - avg:  %vµs - - \n", time.Since(start), avg/1000.0)
 	}
-	state.(*MatchState).runtimeSet[state.(*MatchState).runtimeSetIndex] = int64(time.Since(start))
-	avg := int64(0)
-	for _, time := range state.(*MatchState).runtimeSet {
-		avg += time
-	}
-	avg /= 20
-	state.(*MatchState).runtimeSetIndex = (state.(*MatchState).runtimeSetIndex + 1) % 20
-	fmt.Printf(" - - duration %v - avg:  %vµs - - \n", time.Since(start), avg/1000.0)
-	
+
 	return state
 }
 
