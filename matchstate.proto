@@ -1,0 +1,148 @@
+syntax = "proto3";
+package main;
+option csharp_namespace = "NakamaMinimalGame.PublicMatchState";
+
+message PublicMatchState {
+	int64 tick = 1;
+	//repeated int64 stopwatch = 2;
+	repeated CombatLogEntry combatlog = 2;
+	map<string, Interactable> interactable = 3;
+	map<string, Projectile> projectile = 4;
+  
+	//https://wow.gamepedia.com/COMBAT_LOG_EVENT_UNFILTERED
+	message CombatLogEntry {
+		int64 timestamp = 1;
+		string source_id = 2;
+		string destination_id = 3;
+
+		CombatLogEntry_Source source = 4;
+		oneof source_spell_effect_id {
+			int64 source_spell_id = 5;
+			int64 source_effect_id = 6;
+		}
+		enum CombatLogEntry_Source {
+			Swing = 0;
+			Range = 1;
+			Spell = 2;
+			Periodic = 3;
+			Environment = 4;
+		}
+
+		oneof type {
+			CombatLogEntry_Damage damage = 7;
+			bool missed = 8;
+			CombatLogEntry_Interrupted interrupted = 9;
+			CombatLogEntry_Aura aura = 10;
+			CombatLogEntry_Cast cast = 11;
+			string system_message = 12;
+		}
+
+		message CombatLogEntry_Damage {
+			int32 amount = 1;
+			int32 resisted = 2;
+			int32 blocked = 3;
+			int32 absorbed = 4;
+			int32 critical = 5;
+			int32 overkill = 6;
+		}
+		message CombatLogEntry_Heal {
+			int32 amount = 1;
+			int32 absorbed = 2;
+			int32 critical = 3;
+			int32 overheal = 4;
+		}
+		message CombatLogEntry_Interrupted {
+			int64 interrupted_spell_id = 1;
+		}
+		message CombatLogEntry_Aura {
+			CombatLogEntry_Aura_Event event = 1;
+			enum CombatLogEntry_Aura_Event {
+				Applied = 0;
+				Removed = 1;
+				Refreshed = 2;
+				Depleted = 3;
+			}
+		}
+		message CombatLogEntry_Cast {
+			CombatLogEntry_Aura_Event event = 1;
+			enum CombatLogEntry_Aura_Event {
+				Start = 0;
+				Success = 1;
+				Failed = 2;
+			}
+			string failed_message = 2;
+		}
+		message CombatLogEntry_SystemMessage {
+			string message = 1;
+		}
+	}
+
+	message Interactable {
+		enum Type {
+			Player = 0;
+			NPC = 1;
+		}
+		//system
+		string id = 1;
+		Type type = 2;
+		int64 character_id = 3;
+		int64 last_processed_client_tick = 4;
+		//repeated string unused = 5;
+
+		//vitalities
+		bool invulnerable = 6;
+		int32 max_health = 7;
+		int32 max_power = 8;
+		int32 current_health = 9;
+		int32 current_power = 10;
+		
+		//pos
+		Vector2Df position = 11;
+		float rotation = 12;
+
+		//combat
+		float global_cooldown = 13;
+		string target = 14;
+
+		//auras
+		repeated Aura auras = 15;
+	}
+
+	message Aura {
+		int64 created_at_tick = 1;
+		string creator = 2;
+		int64 effect_id = 3;
+		int32 aura_tick_count = 4;
+	}
+
+	message Projectile {
+		//system
+		string id = 1;
+		int64 spell_id = 2;
+		int64 created_at_tick = 3;
+		string creator = 4;
+
+		Vector2Df position = 5;
+		float rotation = 6;
+		string target = 7;
+
+		float speed = 8;
+	}
+		
+	message Vector2Df {
+		float x = 1;
+		float y = 2;
+	}
+}
+
+message Client_Character {
+	int64 client_tick = 1;
+	float x_axis = 2;
+	float y_axis = 3;
+	float rotation = 4;
+	string target = 5;
+}
+
+message Client_Cast {
+	int64 spell_id = 1;
+}
