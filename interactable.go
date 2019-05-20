@@ -6,10 +6,12 @@ import (
 	"math"
 )
 
+//helper
 func (p PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*InternalPlayer) {
 	return state.InternalPlayer[p.Id];
 }
 
+//fight
 func (p PublicMatchState_Interactable) applyDamage(dmg int32) (overkill int32){	
 	overkill = dmg -  p.CurrentHealth
 	if overkill <= 0 {
@@ -19,6 +21,7 @@ func (p PublicMatchState_Interactable) applyDamage(dmg int32) (overkill int32){
 	return overkill
 }
 
+//casts
 func (p PublicMatchState_Interactable) startCast(state *MatchState, spellId int64) {
 	currentPlayerInternal := p.getInternalPlayer(state)
 	failedMessage := ""
@@ -124,7 +127,7 @@ func (p PublicMatchState_Interactable) finishCast(state *MatchState, spellId int
 	}		
 }
 
-
+//stats
 func (p PublicMatchState_Interactable) recalcStats(state *MatchState) {
 	p.getInternalPlayer(state).StatModifiers = PlayerStats {}
 	for _, aura := range p.Auras {
