@@ -80,26 +80,12 @@ func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchS
 		} else {
 			switch effect.Type.(type) {
 			case *GameDB_Effect_Damage:
-				dmg := randomInt(effect.Type.(*GameDB_Effect_Damage).ValueMin, effect.Type.(*GameDB_Effect_Damage).ValueMax);
-				dmgCrit := int32(0)
-				if randomInt(0, 100) > 20 {
+				dmg := float32(randomInt(effect.Type.(*GameDB_Effect_Damage).ValueMin, effect.Type.(*GameDB_Effect_Damage).ValueMax));
+				dmgCrit := float32(0)
+				if randomPercentage() <= state.PublicMatchState.Interactable[projectile.Creator].Character.getSpellCritChance(){
 					dmgCrit = dmg
 				}
-				overkill := target.applyDamage(dmg + dmgCrit)
-			
-				clEntry := &PublicMatchState_CombatLogEntry {
-					Timestamp: state.PublicMatchState.Tick,
-					SourceId: projectile.Creator,
-					DestinationId: target.Id,
-					SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
-					Source: PublicMatchState_CombatLogEntry_Spell,
-					Type: &PublicMatchState_CombatLogEntry_Damage{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Damage{
-						Amount: dmg,
-						Critical: dmgCrit,
-						Overkill: overkill,
-					}},
-				}
-				state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+				target.applyDamage(state, effect, projectile.Creator, dmg, dmgCrit)
 			}
 		}
 	}

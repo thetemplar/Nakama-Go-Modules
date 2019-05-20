@@ -12,13 +12,49 @@ func (p PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*In
 }
 
 //fight
-func (p PublicMatchState_Interactable) applyDamage(dmg int32) (overkill int32){	
-	overkill = dmg -  p.CurrentHealth
+func (p *PublicMatchState_Interactable) applyDamage(state *MatchState, effect *GameDB_Effect, creator string, dmg float32, dmgCrit float32) {
+	if randomPercentage() <= p.Character.getDodgeChance() {
+		clEntry := &PublicMatchState_CombatLogEntry {
+			Timestamp: state.PublicMatchState.Tick,
+			SourceId: creator,
+			DestinationId: p.Id,
+			SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
+			Source: PublicMatchState_CombatLogEntry_Spell,
+			Type: &PublicMatchState_CombatLogEntry_Missed{ true },
+		}
+		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+		return
+	} 	
+
+	dmgAfterBlock := dmg * (1 - p.Character.getBlockPercentage())
+	dmgAbsorbedByBlock := dmg - dmgAfterBlock
+
+	dmgAfterBlockAndArmor := dmgAfterBlock * (p.Character.getArmor() / (p.Character.getArmor() + 40))
+	dmgAbsorbedByArmor := dmg - dmgAfterBlockAndArmor
+	
+	overkill := float32(0)
+	overkill = (dmgAfterBlockAndArmor + dmgCrit) - p.CurrentHealth
 	if overkill <= 0 {
 		overkill = 0
 	}
-	p.CurrentHealth -= dmg - overkill;
-	return overkill
+	p.CurrentHealth -= (dmgAfterBlockAndArmor + dmgCrit) - overkill;	
+
+	clEntry := &PublicMatchState_CombatLogEntry {
+		Timestamp: state.PublicMatchState.Tick,
+		SourceId: creator,
+		DestinationId: p.Id,
+		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
+		Source: PublicMatchState_CombatLogEntry_Spell,
+		Type: &PublicMatchState_CombatLogEntry_Damage{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Damage{
+			Amount: dmgAfterBlockAndArmor,
+			Resisted: dmgAbsorbedByArmor,
+			Blocked: dmgAbsorbedByBlock,
+			Absorbed: 0,
+			Critical: dmgCrit,
+			Overkill: overkill,			
+		}},
+	}
+	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 }
 
 func (p PublicMatchState_Interactable) containsEffectId(id int64, creator string) int64 {

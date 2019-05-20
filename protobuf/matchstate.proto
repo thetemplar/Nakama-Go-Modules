@@ -1,6 +1,7 @@
 syntax = "proto3";
 package main;
 option csharp_namespace = "NakamaMinimalGame.PublicMatchState";
+import "character.proto";
 
 message PublicMatchState {
 	int64 tick = 1;
@@ -38,18 +39,18 @@ message PublicMatchState {
 		}
 
 		message CombatLogEntry_Damage {
-			int32 amount = 1;
-			int32 resisted = 2;
-			int32 blocked = 3;
-			int32 absorbed = 4;
-			int32 critical = 5;
-			int32 overkill = 6;
+			float amount = 1;
+			float resisted = 2;
+			float blocked = 3;
+			float absorbed = 4;
+			float critical = 5;
+			float overkill = 6;
 		}
 		message CombatLogEntry_Heal {
-			int32 amount = 1;
-			int32 absorbed = 2;
-			int32 critical = 3;
-			int32 overheal = 4;
+			float amount = 1;
+			float absorbed = 2;
+			float critical = 3;
+			float overheal = 4;
 		}
 		message CombatLogEntry_Interrupted {
 			int64 interrupted_spell_id = 1;
@@ -91,10 +92,9 @@ message PublicMatchState {
 
 		//vitalities
 		bool invulnerable = 6;
-		int32 max_health = 7;
-		int32 max_power = 8;
-		int32 current_health = 9;
-		int32 current_power = 10;
+		Character character = 7;
+		float CurrentHealth = 8;
+		float CurrentPower = 9;
 		
 		//pos
 		Vector2Df position = 11;

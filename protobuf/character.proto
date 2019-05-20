@@ -1,0 +1,28 @@
+syntax = "proto3";
+package main;
+option csharp_namespace = "NakamaMinimalGame.Character";
+
+//https://classic.wowhead.com/guides/classic-wow-stats-and-attributes-overview
+//https://barrens.chat/viewtopic.php?f=7&t=885
+
+message Character {
+    ClassName Class = 2;
+    enum ClassName {
+        Warrior = 0;
+        Ranger = 1;
+        Warlock = 2;
+        Wizard = 3;
+        Cleric = 4;
+        Rouge = 5;
+        Priest = 6;
+    }
+    CharacterStats BaseStats = 1;
+}
+
+message CharacterStats {
+    int32 strength = 1;
+    int32 agility = 2;
+    int32 stamina = 3;
+    int32 intellect = 4;
+    int32 wisdom = 5;
+}

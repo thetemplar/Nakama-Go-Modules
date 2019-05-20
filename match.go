@@ -65,8 +65,6 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		CurrentHealth: 100,
 		CurrentPower: 0,
-		MaxHealth: 100,
-		MaxPower: 0,
 		Auras: make([]*PublicMatchState_Aura, 0),
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
@@ -105,8 +103,6 @@ func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 			Position: &PublicMatchState_Vector2Df { },
 			CurrentHealth: 100,
 			CurrentPower: 100,
-			MaxHealth: 100,
-			MaxPower: 100,
 		}
 		
 		state.(*MatchState).InternalPlayer[presence.GetUserId()] = &InternalPlayer{
@@ -287,8 +283,8 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			case *GameDB_Effect_Apply_Aura_Periodic_Damage:
 				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
 					aura.AuraTickCount++
-					dmg := randomInt(effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMin, effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMax);
-					interactable.CurrentHealth -= dmg;
+					dmg := float32(randomInt(effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMin, effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMax))
+					interactable.CurrentHealth -= float32(dmg);
 				
 					clEntry := &PublicMatchState_CombatLogEntry {
 						Timestamp: state.(*MatchState).PublicMatchState.Tick,
