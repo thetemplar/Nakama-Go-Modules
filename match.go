@@ -14,6 +14,7 @@ type MatchState struct {
 	PublicMatchState    PublicMatchState
 	EmptyCounter        int
 	Debug               bool
+	TickRate			int
 
 	InternalPlayer      map[string]*InternalPlayer
 
@@ -37,6 +38,9 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		logger.Printf("%+v\n", entry)
 	}
 
+	tickRate := 10
+	label := ""
+
 	state := &MatchState{
 		Debug: false,
 		EmptyCounter : 0,
@@ -47,6 +51,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		InternalPlayer: make(map[string]*InternalPlayer),
 		runtimeSet: make([]int64, 20),
+		TickRate: tickRate,
 	}
 	
 	//create spellbook
@@ -66,6 +71,18 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		CurrentHealth: 100,
 		CurrentPower: 0,
 		Auras: make([]*PublicMatchState_Aura, 0),
+		Character: &Character {
+			Class: Character_Cleric,
+			BaseStats: &CharacterStats {
+				Strength: 1,
+				Agility: 1,
+				Stamina: 1,
+				Intellect: 1,
+				Wisdom: 1,
+			},
+			EquippedItemMainhandId: 1,
+			EquippedItemOffhandId: 2,
+		},
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
 	enemyInternal := &InternalPlayer{
@@ -78,9 +95,6 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	state.InternalPlayer[enemyInternal.Id] = enemyInternal
 	state.NpcCounter++
-
-	tickRate := 10
-	label := ""
 
 	if state.Debug {
 		logger.Printf("match init, starting with debug: %v at tickrate %v", state.Debug, tickRate)
@@ -103,6 +117,18 @@ func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB
 			Position: &PublicMatchState_Vector2Df { },
 			CurrentHealth: 100,
 			CurrentPower: 100,
+			Character: &Character {
+				Class: Character_Cleric,
+				BaseStats: &CharacterStats {
+					Strength: 1,
+					Agility: 1,
+					Stamina: 1,
+					Intellect: 1,
+					Wisdom: 1,
+				},
+				EquippedItemMainhandId: 1,
+				EquippedItemOffhandId: 2,
+			},
 		}
 		
 		state.(*MatchState).InternalPlayer[presence.GetUserId()] = &InternalPlayer{
@@ -132,34 +158,27 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	return state
 }
 
-func PerformMovement(logger runtime.Logger, state interface{}, message runtime.MatchData, tickrate int) {
-	if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
-		return
-	}
-	currentPlayerInternal := state.(*MatchState).InternalPlayer[message.GetUserId()];
-	currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
+func PerformMovement(logger runtime.Logger, state interface{}, playerId string, xAxis, yAxis, rotation float32, tickrate int) {
+
+	currentPlayerInternal := state.(*MatchState).InternalPlayer[playerId];
+	currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[playerId];
 	
-	msg := &Client_Character{}
-	if err := proto.Unmarshal(message.GetData(), msg); err != nil {
-		logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
-	}
 
 	add := PublicMatchState_Vector2Df {
-		X: msg.XAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
-		Y: msg.YAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
+		X: xAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
+		Y: yAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
 	}
 
-	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_None && (msg.YAxis != 0 || msg.XAxis != 0) {
+	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_None && (xAxis != 0 || yAxis != 0) {
 		fmt.Printf("cancelCast %v\n", currentPlayerInternal.CastingSpellId)
 		currentPlayerPublic.cancelCast(state.(*MatchState))
 	}
 
-	rotatedAdd := add.rotate(msg.Rotation)
+	rotatedAdd := add.rotate(rotation)
 	currentPlayerPublic.Position.X += rotatedAdd.X;
 	currentPlayerPublic.Position.Y += rotatedAdd.Y;
-	currentPlayerPublic.Rotation = msg.Rotation;
+	currentPlayerPublic.Rotation = rotation;
 	
-	currentPlayerPublic.Target = msg.Target;
 
 	//am i still in my triangle?	
 	if currentPlayerInternal.TriangleIndex >= 0 {
@@ -187,7 +206,6 @@ func PerformMovement(logger runtime.Logger, state interface{}, message runtime.M
 		} 
 	}
 
-	currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
 }
 
 func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, messages []runtime.MatchData) interface{} {
@@ -196,23 +214,36 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		logger.Printf("match loop match_id %v message count %v", ctx.Value(runtime.RUNTIME_CTX_MATCH_ID), len(messages))
 	}
     start := time.Now()
-	fmt.Printf(" _ _ _ _ _ new tick %v _ _ _ _ _\n", tick)
 	state.(*MatchState).PublicMatchState.Tick = tick	
 	state.(*MatchState).PublicMatchState.Combatlog = make([]*PublicMatchState_CombatLogEntry, 0)
 	tickrate := ctx.Value(runtime.RUNTIME_CTX_MATCH_TICK_RATE).(int);
 
 	//clear for new loop (finish cast & substract gcd)
 	for _, player := range state.(*MatchState).InternalPlayer {		
-		if player == nil || player.CastingSpellId <= 0 {
+		if player == nil {
 			continue
 		}
+		currentPlayerPublic := player.getPublicPlayer(state.(*MatchState));
 		
 		//finish casts
-		if int64(state.(*MatchState).GameDB.Spells[player.CastingSpellId].CastTime * float32(tickrate)) + player.CastingTickStarted < tick {
-			state.(*MatchState).PublicMatchState.Interactable[player.Id].finishCast(state.(*MatchState), player.CastingSpellId, player.CastingTargeted)
-			player.CastingSpellId = -1
-			player.CastingTickStarted = 0
-			player.CastingTargeted = ""
+		if player.CastingTickEnd <= tick && player.CastingSpellId > 0 {
+			currentPlayerPublic.finishCast(state.(*MatchState), player.CastingSpellId, player.CastingTargeted)
+			player.stopCastTimer()
+		}
+		
+		//finish swing mainhand 
+		if player.Autoattacking && player.AutoattackMainhandTickEnd <= tick && player.AutoattackMainhandTickEnd > 0{
+			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
+			
+			//queue next swing!
+			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed() * float32(tickrate)) + tick
+		}
+		//finish swing offhand
+		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0{
+			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
+			
+			//queue next swing!
+			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed() * float32(tickrate)) + tick
 		}
 			
 		//substract GCD
@@ -240,18 +271,45 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
 
 		if message.GetOpCode() == 0 {
+			/*if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
+				return
+			}*/
 			currentPlayerInternal.LastMessage = message
 			currentPlayerInternal.LastMessageServerTick = tick
 			currentPlayerInternal.MissingCount = 0
+
+			msg := &Client_Character{}
+			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
+				logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
+			}
 			
-			PerformMovement(logger, state, currentPlayerInternal.LastMessage, tickrate)
+			if currentPlayerPublic.Target != msg.Target {
+				currentPlayerInternal.stopAutoattackTimer();
+			}
+			currentPlayerPublic.Target = msg.Target;
+
+			PerformMovement(logger, state, message.GetUserId(), msg.XAxis, msg.YAxis, msg.Rotation, tickrate)
+			
+			currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
 		} else if message.GetOpCode() == 1 {
 			msg := &Client_Cast{}
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
 				logger.Printf("Failed to parse incoming SendPackage Client_Cast:", err)
 			}
 			currentPlayerPublic.startCast(state.(*MatchState), msg.SpellId)
-		}
+		} else if message.GetOpCode() == 2 {
+			msg := &Client_Autoattack{}
+			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
+				logger.Printf("Failed to parse incoming SendPackage Client_Autoattack:", err)
+			}
+			if !currentPlayerInternal.Autoattacking && currentPlayerPublic.Target != "" {
+				fmt.Printf("startAutoattack %v > %v\n", currentPlayerPublic.Id, currentPlayerPublic.Target)
+				currentPlayerPublic.startAutoattack(state.(*MatchState), msg.Attacktype)
+			}
+		} else if message.GetOpCode() == 2 {
+			currentPlayerInternal.stopAutoattackTimer();
+			currentPlayerInternal.stopCastTimer();
+		}  
 	}
 	
 	//did a player not send an package? then re-do his last
@@ -264,7 +322,13 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if player.MissingCount > 1 && player.LastMessage != nil {
 				player.MessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
-				PerformMovement(logger, state, player.LastMessage, tickrate)
+	
+				msg := &Client_Character{}
+				if err := proto.Unmarshal(player.LastMessage.GetData(), msg); err != nil {
+					logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
+				}
+	
+				PerformMovement(logger, state, player.LastMessage.GetUserId(), msg.XAxis, msg.YAxis, msg.Rotation, tickrate)
 			}
 		}
 	}
@@ -282,21 +346,8 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			switch effect.Type.(type) {
 			case *GameDB_Effect_Apply_Aura_Periodic_Damage:
 				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
-					aura.AuraTickCount++
-					dmg := float32(randomInt(effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMin, effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).ValueMax))
-					interactable.CurrentHealth -= float32(dmg);
-				
-					clEntry := &PublicMatchState_CombatLogEntry {
-						Timestamp: state.(*MatchState).PublicMatchState.Tick,
-						SourceId: aura.Creator,
-						DestinationId: interactable.Id,
-						SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
-						Source: PublicMatchState_CombatLogEntry_Spell,
-						Type: &PublicMatchState_CombatLogEntry_Damage{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Damage{
-							Amount: dmg,
-						}},
-					}
-					state.(*MatchState).PublicMatchState.Combatlog = append(state.(*MatchState).PublicMatchState.Combatlog, clEntry)
+					aura.AuraTickCount++					
+					interactable.applyAbilityDamage(state.(*MatchState), effect, aura.Creator)
 				}
 			}			
 
@@ -348,13 +399,13 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		}
 		player.MessageCountThisFrame = 0
 
-		currentPlayerPublic := state.(*MatchState).PublicMatchState.Interactable[player.Id];
 
 		out, err := proto.Marshal(&state.(*MatchState).PublicMatchState)
 		if err != nil {
 				logger.Printf("Failed to encode PublicMatchState:", err)
 		}
-		fmt.Printf("%v @ %v | %v  GCD: %v | bytes: %v kB/s\n", player.Id, currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y, currentPlayerPublic.GlobalCooldown, float64(len(out) * tickrate) / 1000.0)
+		//currentPlayerPublic := state.(*MatchState).PublicMatchState.Interactable[player.Id];
+		//fmt.Printf("%v @ %v | %v  GCD: %v | bytes: %v kB/s\n", player.Id, currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y, currentPlayerPublic.GlobalCooldown, float64(len(out) * tickrate) / 1000.0)
 		dispatcher.BroadcastMessage(1, out, []runtime.Presence { player.Presence }, nil)
 	}	
 	
@@ -376,7 +427,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 
 	//calc loop runtime
-	if true {
+	if false {
 		state.(*MatchState).runtimeSet[state.(*MatchState).runtimeSetIndex] = int64(time.Since(start))
 		avg := int64(0)
 		for _, time := range state.(*MatchState).runtimeSet {
@@ -385,6 +436,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		avg /= 20
 		state.(*MatchState).runtimeSetIndex = (state.(*MatchState).runtimeSetIndex + 1) % 20
 		fmt.Printf(" - - duration %v - avg:  %vµs - - \n", time.Since(start), avg/1000.0)
+		fmt.Printf(" _ _ _ _ _ new tick %v _ _ _ _ _\n", tick+1)
 	}
 
 	return state

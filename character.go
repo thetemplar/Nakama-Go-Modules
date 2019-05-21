@@ -68,7 +68,7 @@ func (c Character) getMeeleAttackPower() float32 {
 	return res
 }
 func (c Character) getMeeleCritChance() float32 {
-	res := float32(5)
+	res := float32(0.05)
 	switch c.Class {
 	case Character_Warrior: res += 0.05 * float32(c.BaseStats.Agility)
 	case Character_Ranger: res += 0.02 * float32(c.BaseStats.Agility)
@@ -81,7 +81,7 @@ func (c Character) getMeeleCritChance() float32 {
 	return res
 }
 func (c Character) getMeeleHitChance() float32 {
-	res := float32(80)
+	res := float32(0.80)
 	switch c.Class {
 	case Character_Warrior: 
 	case Character_Ranger:
@@ -118,7 +118,7 @@ func (c Character) getSpellAttackPower() float32 {
 	return res
 }
 func (c Character) getSpellCritChance() float32 {
-	res := float32(5)
+	res := float32(0.05)
 	switch c.Class {
 	case Character_Warlock: res += 0.02 * float32(c.BaseStats.Intellect)
 	case Character_Wizard: res += 0.02 * float32(c.BaseStats.Intellect)
@@ -128,7 +128,7 @@ func (c Character) getSpellCritChance() float32 {
 	return res
 }
 func (c Character) getSpellHitChance() float32 {
-	res := float32(90)
+	res := float32(0.90)
 	switch c.Class {
 	case Character_Ranger:
 	case Character_Warlock:
@@ -155,7 +155,7 @@ func (c Character) getArmor() float32 {
 	return res
 }
 func (c Character) getBlockPercentage() float32 {
-	res := float32(10)
+	res := float32(0.10)
 	switch c.Class {
 	case Character_Warrior: res += 0.05 * float32(c.BaseStats.Strength)
 	case Character_Cleric: res += 0.05 * float32(c.BaseStats.Strength)
@@ -163,7 +163,7 @@ func (c Character) getBlockPercentage() float32 {
 	return res
 }
 func (c Character) getDodgeChance() float32 {
-	res := float32(10)
+	res := float32(0.10)
 	switch c.Class {
 	case Character_Warrior: res += 0.05 * float32(c.BaseStats.Agility)
 	case Character_Ranger: res += 0.04 * float32(c.BaseStats.Agility)
@@ -175,9 +175,22 @@ func (c Character) getDodgeChance() float32 {
 	}
 	return res
 }
+func (c Character) getParryChance() float32 {
+	res := float32(0.10)
+	switch c.Class {
+	case Character_Warrior: res += 0.05 * float32(c.BaseStats.Strength)
+	case Character_Ranger: res += 0.04 * float32(c.BaseStats.Strength)
+	case Character_Warlock: res += 0.05 * float32(c.BaseStats.Strength)
+	case Character_Wizard: res += 0.05 * float32(c.BaseStats.Strength)
+	case Character_Cleric: res += 0.05 * float32(c.BaseStats.Strength)
+	case Character_Rouge: res += 0.07 * float32(c.BaseStats.Strength)
+	case Character_Priest: res += 0.05 * float32(c.BaseStats.Strength)
+	}
+	return res
+}
 
 //resistance
-func (c Character) getResistanceArcance() float32 {
+func (c Character) getResistanceArcane() float32 {
 	res := float32(0)
 	switch c.Class {
 	case Character_Warrior:
@@ -254,4 +267,21 @@ func (c Character) getResistanceHoly() float32 {
 	case Character_Priest:
 	}
 	return res
+}
+func (c Character) getResistance(school GameDB_Spell_SchoolType) float32 {
+	switch school {
+	case GameDB_Spell_SchoolType_Arcane:
+		return c.getResistanceArcane()
+	case GameDB_Spell_SchoolType_Fire:
+		return c.getResistanceArcane()
+	case GameDB_Spell_SchoolType_Frost:
+		return c.getResistanceArcane()
+	case GameDB_Spell_SchoolType_Nature:
+		return c.getResistanceArcane()
+	case GameDB_Spell_SchoolType_Shadow:
+		return c.getResistanceArcane()
+	case GameDB_Spell_SchoolType_Holy:
+		return c.getResistanceArcane()
+	}
+	return float32(0)
 }

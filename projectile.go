@@ -1,13 +1,12 @@
 package main
 
 import (
-	"math"
 	"fmt"
 )
 
 func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMatchState_Projectile, tickrate int) {
 	target := state.PublicMatchState.Interactable[projectile.Target]					
-	distance := float32(math.Sqrt(math.Pow(float64(projectile.Position.X - target.Position.X), 2) + math.Pow(float64(projectile.Position.Y - target.Position.Y), 2)))	
+	distance := projectile.Position.distance(target.Position)	
 	direction := PublicMatchState_Vector2Df {
 		X: target.Position.X - projectile.Position.X,
 		Y: target.Position.Y - projectile.Position.Y,
@@ -80,12 +79,7 @@ func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchS
 		} else {
 			switch effect.Type.(type) {
 			case *GameDB_Effect_Damage:
-				dmg := float32(randomInt(effect.Type.(*GameDB_Effect_Damage).ValueMin, effect.Type.(*GameDB_Effect_Damage).ValueMax));
-				dmgCrit := float32(0)
-				if randomPercentage() <= state.PublicMatchState.Interactable[projectile.Creator].Character.getSpellCritChance(){
-					dmgCrit = dmg
-				}
-				target.applyDamage(state, effect, projectile.Creator, dmg, dmgCrit)
+				target.applyAbilityDamage(state, effect, projectile.Creator)
 			}
 		}
 	}

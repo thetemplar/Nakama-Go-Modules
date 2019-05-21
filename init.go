@@ -6,89 +6,127 @@ func init_db() *GameDB {
 		Spells: make(map[int64]*GameDB_Spell),
 		Effects: make(map[int64]*GameDB_Effect),
 		Procs: make(map[int64]*GameDB_Proc),
+		Items: make(map[int64]*GameDB_Item),
 		Spellbook: make([]*GameDB_Spell, 0),
 	}
+
+	sword := &GameDB_Item{
+		Id				:1,
+		Name 			:"Sword",
+		Description 	:"Sword",
+
+		Type			:GameDB_Item_Type_Weapon_OneHand,
+		Slot			:GameDB_Item_Slot_Weapon_MainHand,
+
+		DamageMin		:20,
+		DamageMax		:30,
+		AttackSpeed		:2,
+		Range 			:2,
+	}
+	GameDB.Items[1] = sword
+
+	shield := &GameDB_Item{
+		Id				:2,
+		Name 			:"Shield",
+		Description 	:"Shield",
+
+		Type			:GameDB_Item_Type_Weapon_OffHand,
+		Slot			:GameDB_Item_Slot_Weapon_OffHand,
+
+		BlockValue		:100,
+	}
+	GameDB.Items[2] = shield
+
+	autoattack := &GameDB_Effect{
+		Id				:1,
+		Name 			:"Meele",
+		Description 	:"Meele",
+		Visible			:true,
+		Dispellable		:false,
+		Duration 		:0,
+		EffectID		:0,
+		Type 			: &GameDB_Effect_Autoattack {},
+	}
+	GameDB.Effects[1] = autoattack
 		
 	fireball_dmg := &GameDB_Effect{
-		Id				:1,
+		Id				:2,
 		Name 			:"Fireball",
 		Description 	:"Fireball",
 		Visible			:true,
 		Dispellable		:false,
 		Duration 		:0,
 		EffectID		:0,
-		Type 			: &GameDB_Effect_Damage {
-			Type: GameDB_Spell_DamageType_Fire,
-			ValueMin: 20,
-			ValueMax: 30,
-		},
+		School			:GameDB_Spell_SchoolType_Fire,
+		ValueMin		:20,
+		ValueMax		:30,
+		Type 			: &GameDB_Effect_Damage {},
 	}
-	GameDB.Effects[1] = fireball_dmg
+	GameDB.Effects[2] = fireball_dmg
 	
 	frostbolt_dmg := &GameDB_Effect{
-		Id				:2,
+		Id				:3,
 		Name 			:"Frostbolt",
 		Description 	:"Frostbolt",
 		Visible			:true,
 		Dispellable		:false,
 		Duration 		:0,
 		EffectID		:0,
-		Type 			: &GameDB_Effect_Damage {
-			Type: GameDB_Spell_DamageType_Frost,
-			ValueMin: 10,
-			ValueMax: 15,
-		},
+		School			:GameDB_Spell_SchoolType_Frost,
+		ValueMin		:10,
+		ValueMax		:15,
+		Type 			: &GameDB_Effect_Damage {},
 	}
-	GameDB.Effects[2] = frostbolt_dmg
+	GameDB.Effects[3] = frostbolt_dmg
 
 	chilled := &GameDB_Effect{
-		Id				:3,
+		Id				:4,
 		Name 			:"Chilled",
 		Description 	:"Chilled",
 		Visible			:true,
 		Dispellable		:true,
 		Duration 		:5,
 		EffectID		:1,
+		School			:GameDB_Spell_SchoolType_Frost,
 		Type 			: &GameDB_Effect_Apply_Aura_Mod {
 			Stat: GameDB_Stat_Speed,
 			Value: 15,
 		},
 	}
-	GameDB.Effects[3] = chilled
+	GameDB.Effects[4] = chilled
 
 	sunburn_dmg := &GameDB_Effect{
-		Id				:4,
+		Id				:5,
 		Name 			:"Sunburn",
 		Description 	:"Sunburn Initial Damage",
 		Visible			:true,
 		Dispellable		:false,
 		Duration 		:0,
 		EffectID		:0,
-		Type 			: &GameDB_Effect_Damage {
-			Type: GameDB_Spell_DamageType_Fire,
-			ValueMin: 5,
-			ValueMax: 10,
-		},
+		School			:GameDB_Spell_SchoolType_Fire,
+		ValueMin		:5,
+		ValueMax		:10,
+		Type 			: &GameDB_Effect_Damage {},
 	}
-	GameDB.Effects[4] = sunburn_dmg
+	GameDB.Effects[5] = sunburn_dmg
 
 	sunburn_dot := &GameDB_Effect{
-		Id				:5,
-		Name 			:"Sunburn",
+		Id				:6,
+		Name 			:"Sunburned",
 		Description 	:"Sunburn DoT",
 		Visible			:true,
 		Dispellable		:false,
 		Duration 		:10,
 		EffectID		:2,
+		School			:GameDB_Spell_SchoolType_Fire,
+		ValueMin		:3,
+		ValueMax		:5,
 		Type 			: &GameDB_Effect_Apply_Aura_Periodic_Damage {
-			Type: GameDB_Spell_DamageType_Fire,
-			ValueMin: 3,
-			ValueMax: 5,
 			Intervall: 2,
 		},
 	}
-	GameDB.Effects[5] = sunburn_dot
-
+	GameDB.Effects[6] = sunburn_dot
+	
 	fireball := &GameDB_Spell{
 		Id					:1,
 		Name 				:"Fireball",
@@ -97,6 +135,8 @@ func init_db() *GameDB {
 		ThreadModifier		:1,
 		Cooldown			:0,
 		GlobalCooldown		:1.5,
+		IgnoresGCD			:false,
+		IgnoresWeaponswing  :false,
 	
 		MissileID			:1,
 		EffectID			:0,
@@ -117,7 +157,7 @@ func init_db() *GameDB {
 		
 		Target				:GameDB_Spell_Target_Unit,
 	
-		Effect			    :[]*GameDB_Effect { GameDB.Effects[1] },
+		Effect			    :[]*GameDB_Effect { GameDB.Effects[2] },
 		
 		InterruptedBy		:GameDB_Interrupt_OnMovement,
 	}
@@ -131,6 +171,8 @@ func init_db() *GameDB {
 		ThreadModifier		:1,
 		Cooldown			:0,
 		GlobalCooldown		:1.5,
+		IgnoresGCD			:false,
+		IgnoresWeaponswing  :false,
 	
 		MissileID			:2,
 		EffectID			:0,
@@ -151,7 +193,7 @@ func init_db() *GameDB {
 		
 		Target				:GameDB_Spell_Target_Unit,
 	
-		Effect			    :[]*GameDB_Effect { GameDB.Effects[2], GameDB.Effects[3] },
+		Effect			    :[]*GameDB_Effect { GameDB.Effects[3], GameDB.Effects[4] },
 		
 		InterruptedBy		:GameDB_Interrupt_None,
 	}
@@ -165,6 +207,8 @@ func init_db() *GameDB {
 		ThreadModifier		:1,
 		Cooldown			:0,
 		GlobalCooldown		:1.5,
+		IgnoresGCD			:false,
+		IgnoresWeaponswing  :true,
 	
 		MissileID			:3,
 		EffectID			:0,
@@ -185,7 +229,7 @@ func init_db() *GameDB {
 		
 		Target				:GameDB_Spell_Target_Unit,
 	
-		Effect			    :[]*GameDB_Effect { GameDB.Effects[4], GameDB.Effects[5] },
+		Effect			    :[]*GameDB_Effect { GameDB.Effects[5], GameDB.Effects[6] },
 		
 		InterruptedBy		:GameDB_Interrupt_None,
 	}

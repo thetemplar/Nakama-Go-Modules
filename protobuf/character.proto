@@ -4,9 +4,10 @@ option csharp_namespace = "NakamaMinimalGame.Character";
 
 //https://classic.wowhead.com/guides/classic-wow-stats-and-attributes-overview
 //https://barrens.chat/viewtopic.php?f=7&t=885
+//https://lotro-wiki.com/index.php/Rating_to_percentage_formula
 
 message Character {
-    ClassName Class = 2;
+    ClassName class = 1;
     enum ClassName {
         Warrior = 0;
         Ranger = 1;
@@ -16,7 +17,10 @@ message Character {
         Rouge = 5;
         Priest = 6;
     }
-    CharacterStats BaseStats = 1;
+    CharacterStats base_stats = 2;
+    
+    int64 equipped_item_mainhand_id = 3;
+    int64 equipped_item_offhand_id = 4;
 }
 
 message CharacterStats {

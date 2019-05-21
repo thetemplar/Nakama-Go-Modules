@@ -31,7 +31,7 @@ func (m *Map) getNearest(v PublicMatchState_Vector2Df, length int) []NextTriangl
 	res := make([]NextTriangles, len(m.Triangles))
 	i := 0
 	for _, triangle := range m.Triangles {
-		res[i].Distance = float64(triangle.W.distance(v))
+		res[i].Distance = float64(triangle.W.distance(&v))
 		res[i].Index = i
 		i++
 	}

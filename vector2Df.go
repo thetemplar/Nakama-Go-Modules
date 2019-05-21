@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"fmt"
 )
 
 func (v PublicMatchState_Vector2Df) rotate(degrees float32) PublicMatchState_Vector2Df {
@@ -15,11 +16,22 @@ func (v PublicMatchState_Vector2Df) rotate(degrees float32) PublicMatchState_Vec
 	return vec
 }
 
-func (v PublicMatchState_Vector2Df) distance(t PublicMatchState_Vector2Df) float32 {
+func (v PublicMatchState_Vector2Df) distance(t *PublicMatchState_Vector2Df) float32 {
 	return float32(math.Sqrt(math.Pow(float64(t.X - v.X), 2) + math.Pow(float64(t.Y - v.Y), 2)))
 }
 
-func Intersection (p0, p1, p2, p3 PublicMatchState_Vector2Df) (bool, PublicMatchState_Vector2Df) {
+func (v PublicMatchState_Vector2Df) isBehind(t *PublicMatchState_Vector2Df, rotation float32) bool {
+	if v.distance(t) < 1 {
+		return false
+	}
+	//x := v.X - t.X
+	//y := v.Y - t.Y
+
+	fmt.Println("TODO -> func (v PublicMatchState_Vector2Df) isBehind (t PublicMatchState_Vector2Df, rotation float32) bool")
+	return false
+}
+
+func Intersection (p0, p1, p2, p3 *PublicMatchState_Vector2Df) (bool, PublicMatchState_Vector2Df) {
 	s1_x := p1.X - p0.X
 	s1_y := p1.Y - p0.Y
 	s2_x := p3.X - p2.X
@@ -38,7 +50,7 @@ func Intersection (p0, p1, p2, p3 PublicMatchState_Vector2Df) (bool, PublicMatch
 
 func IntersectingBorders (start *PublicMatchState_Vector2Df, target *PublicMatchState_Vector2Df, m *Map) (bool) {
 	for _, b := range m.Borders {
-		hasIntersection, _ := Intersection(*start, *target, b.A, b.B)
+		hasIntersection, _ := Intersection(start, target, &b.A, &b.B)
 		if hasIntersection {
 			return true
 		}

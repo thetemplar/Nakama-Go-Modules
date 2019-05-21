@@ -17,10 +17,6 @@ message PublicMatchState {
 		string destination_id = 3;
 
 		CombatLogEntry_Source source = 4;
-		oneof source_spell_effect_id {
-			int64 source_spell_id = 5;
-			int64 source_effect_id = 6;
-		}
 		enum CombatLogEntry_Source {
 			Swing = 0;
 			Range = 1;
@@ -28,10 +24,14 @@ message PublicMatchState {
 			Periodic = 3;
 			Environment = 4;
 		}
+		oneof source_spell_effect_id {
+			int64 source_spell_id = 5;
+			int64 source_effect_id = 6;
+		}
 
 		oneof type {
 			CombatLogEntry_Damage damage = 7;
-			bool missed = 8;
+			CombatLogEntry_Missed missed_type = 8;
 			CombatLogEntry_Interrupted interrupted = 9;
 			CombatLogEntry_Aura aura = 10;
 			CombatLogEntry_Cast cast = 11;
@@ -45,6 +45,11 @@ message PublicMatchState {
 			float absorbed = 4;
 			float critical = 5;
 			float overkill = 6;
+		}
+		enum CombatLogEntry_Missed {
+			Missed = 0;
+			Dodged = 1;
+			Parried = 2;
 		}
 		message CombatLogEntry_Heal {
 			float amount = 1;
@@ -135,6 +140,10 @@ message PublicMatchState {
 	}
 }
 
+
+//Send by client
+
+//opId = 0
 message Client_Character {
 	int64 client_tick = 1;
 	float x_axis = 2;
@@ -143,6 +152,21 @@ message Client_Character {
 	string target = 5;
 }
 
+//opId = 1
 message Client_Cast {
 	int64 spell_id = 1;
+}
+
+//opId = 2
+message Client_Autoattack {
+	enum Type {
+		Meele = 0;
+		Range = 1;
+		Wand = 2;
+	}
+	Type attacktype = 1;
+}
+
+//opId = 3
+message Client_CancelAttack {
 }

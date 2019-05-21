@@ -4,9 +4,44 @@ type GameDB struct {
 	Spells				map[int64]*GameDB_Spell
 	Effects				map[int64]*GameDB_Effect
 	Procs				map[int64]*GameDB_Proc
+
+	Items				map[int64]*GameDB_Item
 	
 	Spellbook			[]*GameDB_Spell
 }
+
+type GameDB_Item struct {
+	Id					int64
+	Name 				string
+	Description 		string
+
+	Type				GameDB_Item_Type
+	Slot				GameDB_Item_Slot
+
+	DamageMin			int32
+	DamageMax			int32
+	AttackSpeed			float32
+	Range 				float32
+
+	BlockValue			int32
+}
+
+type GameDB_Item_Type int
+const (
+	GameDB_Item_Type_Weapon_OneHand = 0;
+	GameDB_Item_Type_Weapon_MainHand = 1;
+	GameDB_Item_Type_Weapon_OffHand = 2;
+	GameDB_Item_Type_Weapon_TwoHand = 3;
+	GameDB_Item_Type_Weapon_Shield = 4;
+	GameDB_Item_Type_Weapon_Bow = 5;
+	GameDB_Item_Type_Weapon_Wand = 6;
+)
+
+type GameDB_Item_Slot int
+const (
+	GameDB_Item_Slot_Weapon_MainHand = 0;
+	GameDB_Item_Slot_Weapon_OffHand = 1;
+)
 
 type GameDB_Proc struct {
 	Spell 				*GameDB_Spell
@@ -36,6 +71,8 @@ type GameDB_Spell struct {
 	ThreadModifier		int32
 	Cooldown			float32
 	GlobalCooldown		float32
+	IgnoresGCD			bool
+	IgnoresWeaponswing  bool
 
 	MissileID			int32
 	EffectID			int32
@@ -63,12 +100,13 @@ type GameDB_Spell struct {
 
 type GameDB_Spell_ApplicationType int
 const (
-	GameDB_Spell_ApplicationType_Instant = 0
-	GameDB_Spell_ApplicationType_Missile = 1
-	GameDB_Spell_ApplicationType_Beam = 2
-	GameDB_Spell_ApplicationType_AoE = 3
-	GameDB_Spell_ApplicationType_Cone = 4
-	GameDB_Spell_ApplicationType_Summon = 5
+	GameDB_Spell_ApplicationType_WeaponSwing = 0
+	GameDB_Spell_ApplicationType_Instant = 1
+	GameDB_Spell_ApplicationType_Missile = 2
+	GameDB_Spell_ApplicationType_Beam = 3
+	GameDB_Spell_ApplicationType_AoE = 4
+	GameDB_Spell_ApplicationType_Cone = 5
+	GameDB_Spell_ApplicationType_Summon = 6
 )
 
 type GameDB_Effect struct {
@@ -79,30 +117,26 @@ type GameDB_Effect struct {
 	EffectID		int64
 	Duration 		float32
 	Dispellable		bool
+	School 			GameDB_Spell_SchoolType
 	Type 			interface{}
+	ValueMin 		int32
+	ValueMax 		int32
+}
+
+type GameDB_Effect_Autoattack struct {
 }
 
 type GameDB_Effect_Damage struct {
-	Type 			GameDB_Spell_DamageType
-	ValueMin 		int32
-	ValueMax 		int32
 }
 
 type GameDB_Effect_Heal struct {
-	ValueMin 		int32
-	ValueMax 		int32
 }
 
 type GameDB_Effect_Apply_Aura_Periodic_Damage struct {
-	Type 			GameDB_Spell_DamageType
-	ValueMin 		int32
-	ValueMax 		int32
 	Intervall   	float32
 }
 
 type GameDB_Effect_Apply_Aura_Periodic_Heal struct {
-	ValueMin 		int32
-	ValueMax 		int32
 	Intervall   	float32
 }
 
@@ -116,15 +150,15 @@ const (
 	GameDB_Stat_Speed = 0
 )
 
-type GameDB_Spell_DamageType int
+type GameDB_Spell_SchoolType int
 const (
-	GameDB_Spell_DamageType_Physical = 0
-	GameDB_Spell_DamageType_Arcane = 1
-	GameDB_Spell_DamageType_Fire = 2
-	GameDB_Spell_DamageType_Frost = 3
-	GameDB_Spell_DamageType_Nature = 4
-	GameDB_Spell_DamageType_Shadow = 5
-	GameDB_Spell_DamageType_Holy = 6
+	GameDB_Spell_SchoolType_Physical = 0
+	GameDB_Spell_SchoolType_Arcane = 1
+	GameDB_Spell_SchoolType_Fire = 2
+	GameDB_Spell_SchoolType_Frost = 3
+	GameDB_Spell_SchoolType_Nature = 4
+	GameDB_Spell_SchoolType_Shadow = 5
+	GameDB_Spell_SchoolType_Holy = 6
 )
 
 type GameDB_Spell_Mechanic int
@@ -163,3 +197,21 @@ const (
 	GameDB_Interrupt_OnAttackingMeele = 5
 	GameDB_Interrupt_OnAttackingSpell = 6
 )
+
+
+func (g *GameDB) searchSpellsByName(name string) (*GameDB_Spell) {
+	for _, spell := range g.Spells { 
+		if spell.Name == name {
+			return spell;
+		}
+	}
+	return nil
+}
+func (g *GameDB) searchEffectByName(name string) (*GameDB_Effect) {
+	for _, effect := range g.Effects { 
+		if effect.Name == name {
+			return effect;
+		}
+	}
+	return nil
+}

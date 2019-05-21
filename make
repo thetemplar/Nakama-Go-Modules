@@ -6,6 +6,6 @@ cd protobuf
 protoc --gofast_out=../ --csharp_out=. matchstate.proto
 protoc --gofast_out=../ --csharp_out=. character.proto
 cd ..
-go build --buildmode=plugin -o ~/go/src/modules/plugin.so &&  ~/go/src/github.com/heroiclabs/nakama/nakama --runtime.path ~/go/src/Nakama-Go-Modules/modules  
+go build --buildmode=plugin -o ~/go/src/modules/plugin.so &&  ~/go/src/github.com/heroiclabs/nakama/nakama --runtime.path ~/go/src/modules  
 #--logger.level "debug"           
 
