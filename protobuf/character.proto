@@ -17,10 +17,14 @@ message Character {
         Rouge = 5;
         Priest = 6;
     }
-    CharacterStats base_stats = 2;
+    int32 level = 2;
+    CharacterStats base_stats = 3;
     
-    int64 equipped_item_mainhand_id = 3;
-    int64 equipped_item_offhand_id = 4;
+    int64 equipped_item_mainhand_id = 4;
+    int64 equipped_item_offhand_id = 5;
+    
+    float current_health = 6;
+    float current_power = 7;
 }
 
 message CharacterStats {

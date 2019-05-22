@@ -93,24 +93,21 @@ message PublicMatchState {
 		Type type = 2;
 		int64 character_id = 3;
 		int64 last_processed_client_tick = 4;
-		//repeated string unused = 5;
 
 		//vitalities
-		bool invulnerable = 6;
-		Character character = 7;
-		float CurrentHealth = 8;
-		float CurrentPower = 9;
+		bool invulnerable = 5;
+		Character character = 6;
 		
 		//pos
-		Vector2Df position = 11;
-		float rotation = 12;
+		Vector2Df position = 7;
+		float rotation = 8;
 
 		//combat
-		float global_cooldown = 13;
-		string target = 14;
+		float global_cooldown = 9;
+		string target = 10;
 
 		//auras
-		repeated Aura auras = 15;
+		repeated Aura auras = 11;
 	}
 
 	message Aura {
@@ -169,4 +166,9 @@ message Client_Autoattack {
 
 //opId = 3
 message Client_CancelAttack {
+}
+
+//opId = 100
+message Client_SelectCharacter {
+	Character.ClassName class = 1;
 }

@@ -17,6 +17,7 @@ type MatchState struct {
 	TickRate			int
 
 	InternalPlayer      map[string]*InternalPlayer
+	PresenceList      	map[string]*runtime.Presence
 
 	ProjectileCounter	int64
 	NpcCounter			int64
@@ -68,8 +69,6 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 			X: 15,
 			Y: 15,
 		},
-		CurrentHealth: 100,
-		CurrentPower: 0,
 		Auras: make([]*PublicMatchState_Aura, 0),
 		Character: &Character {
 			Class: Character_Cleric,
@@ -82,6 +81,8 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 			},
 			EquippedItemMainhandId: 1,
 			EquippedItemOffhandId: 2,
+			CurrentHealth: 100,
+			CurrentPower: 0,
 		},
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
@@ -109,39 +110,48 @@ func (m *Match) MatchJoinAttempt(ctx context.Context, logger runtime.Logger, db 
 	return state, true, ""
 }
 
-func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, presences []runtime.Presence) interface{} {
-	for _, presence := range presences {
-		state.(*MatchState).PublicMatchState.Interactable[presence.GetUserId()] = &PublicMatchState_Interactable{
-			Id: presence.GetUserId(),
-			Type: PublicMatchState_Interactable_Player,
-			Position: &PublicMatchState_Vector2Df { },
+func SpawnPlayer(state *MatchState, userId string) {
+
+	if state.PublicMatchState.Interactable[userId] != nil || state.InternalPlayer[userId] != nil {
+		return
+	}
+
+	state.PublicMatchState.Interactable[userId] = &PublicMatchState_Interactable{
+		Id: userId,
+		Type: PublicMatchState_Interactable_Player,
+		Position: &PublicMatchState_Vector2Df { },
+		Character: &Character {
+			Class: Character_Cleric,
+			BaseStats: &CharacterStats {
+				Strength: 1,
+				Agility: 1,
+				Stamina: 1,
+				Intellect: 1,
+				Wisdom: 1,
+			},
+			EquippedItemMainhandId: 1,
+			EquippedItemOffhandId: 2,
 			CurrentHealth: 100,
 			CurrentPower: 100,
-			Character: &Character {
-				Class: Character_Cleric,
-				BaseStats: &CharacterStats {
-					Strength: 1,
-					Agility: 1,
-					Stamina: 1,
-					Intellect: 1,
-					Wisdom: 1,
-				},
-				EquippedItemMainhandId: 1,
-				EquippedItemOffhandId: 2,
-			},
-		}
-		
-		state.(*MatchState).InternalPlayer[presence.GetUserId()] = &InternalPlayer{
-			Id: presence.GetUserId(),
-			Presence: presence,
-			BasePlayerStats: PlayerStats {
-				MovementSpeed: 20.0,
-			},			
-			TriangleIndex: -1,
-			StatModifiers: PlayerStats {},
-		}
-		
+		},
+	}
+	
+	state.InternalPlayer[userId] = &InternalPlayer{
+		Id: userId,
+		Presence: *state.PresenceList[userId],
+		BasePlayerStats: PlayerStats {
+			MovementSpeed: 20.0,
+		},			
+		TriangleIndex: -1,
+		StatModifiers: PlayerStats {},
+	}
+	
+}
+
+func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, presences []runtime.Presence) interface{} {
+	for _, presence := range presences {		
 		logger.Printf("match join username %v user_id %v session_id %v node %v", presence.GetUsername(), presence.GetUserId(), presence.GetSessionId(), presence.GetNodeId())
+		state.(*MatchState).PresenceList[presence.GetUserId()] = &presence
 	}
 
 	return state
@@ -151,6 +161,10 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	for _, presence := range presences {		
 		state.(*MatchState).PublicMatchState.Interactable[presence.GetUserId()] = nil
 		state.(*MatchState).InternalPlayer[presence.GetUserId()] = nil
+		state.(*MatchState).PresenceList[presence.GetUserId()] = nil
+		delete(state.(*MatchState).PublicMatchState.Interactable, presence.GetUserId())
+		delete(state.(*MatchState).InternalPlayer, presence.GetUserId())
+		delete(state.(*MatchState).PresenceList, presence.GetUserId())
 
 		logger.Printf("match leave username %v user_id %v session_id %v node %v", presence.GetUsername(), presence.GetUserId(), presence.GetSessionId(), presence.GetNodeId())
 	}
@@ -219,10 +233,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	tickrate := ctx.Value(runtime.RUNTIME_CTX_MATCH_TICK_RATE).(int);
 
 	//clear for new loop (finish cast & substract gcd)
-	for _, player := range state.(*MatchState).InternalPlayer {		
-		if player == nil {
-			continue
-		}
+	for _, player := range state.(*MatchState).InternalPlayer {	
 		currentPlayerPublic := player.getPublicPlayer(state.(*MatchState));
 		
 		//finish casts
@@ -252,9 +263,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//get new input-counts
 	for _, message := range messages { 
-		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil {
-			continue
-		}
 		if(message.GetOpCode() == 0) {
 			state.(*MatchState).InternalPlayer[message.GetUserId()].MessageCountThisFrame++
 		}
@@ -264,9 +272,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	for _, message := range messages { 
 		//logger.Printf("message from %v with opcode %v", message.GetUserId(), message.GetOpCode())
 		//entry.UserID, entry.SessionId, entry.Username, entry.Node, entry.OpCode, entry.Data, entry.ReceiveTime
-		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil {
-			continue
-		}
 		currentPlayerInternal := state.(*MatchState).InternalPlayer[message.GetUserId()];
 		currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
 
@@ -306,17 +311,16 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				fmt.Printf("startAutoattack %v > %v\n", currentPlayerPublic.Id, currentPlayerPublic.Target)
 				currentPlayerPublic.startAutoattack(state.(*MatchState), msg.Attacktype)
 			}
-		} else if message.GetOpCode() == 2 {
+		} else if message.GetOpCode() == 3 {
 			currentPlayerInternal.stopAutoattackTimer();
 			currentPlayerInternal.stopCastTimer();
+		} else if message.GetOpCode() == 100 {
+			SpawnPlayer(state.(*MatchState), message.GetUserId())
 		}  
 	}
 	
 	//did a player not send an package? then re-do his last
 	for _, player := range state.(*MatchState).InternalPlayer {		
-		if player == nil {
-			continue
-		}
 		if player.LastMessageServerTick != tick {
 			player.MissingCount++
 			if player.MissingCount > 1 && player.LastMessage != nil {
@@ -335,9 +339,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//auras
 	for _, interactable := range state.(*MatchState).PublicMatchState.Interactable {		
-		if interactable == nil{
-			continue
-		}
 		i := 0
 		doRecalc := false
 		for _, aura := range interactable.Auras {
@@ -394,7 +395,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//send new game state (by creating protobuf message)
 	for _, player := range state.(*MatchState).InternalPlayer {		
-		if player == nil || player.Presence == nil {
+		if player.Presence == nil {
 			continue
 		}
 		player.MessageCountThisFrame = 0

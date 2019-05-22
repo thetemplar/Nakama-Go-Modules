@@ -75,12 +75,12 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	} 
 
 	overkill := float32(0)
-	overkill = (dmgInput + dmgInputCrit) - p.CurrentHealth
+	overkill = (dmgInput + dmgInputCrit) - p.Character.CurrentHealth
 	if overkill <= 0 {
 		overkill = 0
 	}
-	p.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
-	fmt.Printf("applyDamage to %v: %v -> now:  %v\n", p.Id, (dmgInput + dmgInputCrit) - overkill, p.CurrentHealth)
+	p.Character.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
+	fmt.Printf("applyDamage to %v: %v -> now:  %v\n", p.Id, (dmgInput + dmgInputCrit) - overkill, p.Character.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
@@ -141,12 +141,12 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	} 
 
 	overkill := float32(0)
-	overkill = (dmgInput + dmgInputCrit) - p.CurrentHealth
+	overkill = (dmgInput + dmgInputCrit) - p.Character.CurrentHealth
 	if overkill <= 0 {
 		overkill = 0
 	}
-	p.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
-	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (dmgInput + dmgInputCrit) - overkill, effect, p.CurrentHealth)
+	p.Character.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
+	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (dmgInput + dmgInputCrit) - overkill, effect, p.Character.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
@@ -237,7 +237,7 @@ func (p PublicMatchState_Interactable) startAutoattack(state *MatchState, attack
 
 func (p PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB_Item_Slot, targetId string) {
 	fmt.Printf("TODO: func (p PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB_Item_Slot) %v\n", slot)
-	state.PublicMatchState.Interactable[targetId].CurrentHealth -= 10;	
+	state.PublicMatchState.Interactable[targetId].Character.CurrentHealth -= 10;	
 }
 
 //casts
