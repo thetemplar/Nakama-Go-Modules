@@ -11,17 +11,33 @@ func (p PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*In
 }
 
 //fight
-func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState, creator string) {
+func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState, creator string, slot GameDB_Item_Slot) {
 	source :=  state.PublicMatchState.Interactable[creator]
 
+	miss := (1 - source.Character.getMeeleHitChance())
 	//behind?
 	behind := source.Position.isBehind(p.Position, p.Rotation)
+	dmgInput := float32(0)
+	if slot == GameDB_Item_Slot_Weapon_MainHand {
+		weapon := source.Character.EquippedItemMainhandId
+		dmgInput = randomFloatInt(state.GameDB.Items[weapon].DamageMin, state.GameDB.Items[weapon].DamageMax)
+		fmt.Printf("\napplyAutoattackDamage (%v) %v to unit %v\n", slot, dmgInput, p.Id)
+		speed := state.GameDB.Items[weapon].AttackSpeed * source.Character.getMeeleAttackSpeed()
+		dmgInput += source.Character.getMeeleAttackPower() / (1 / speed)
+		fmt.Printf("\nadded AP to-> %v\n", dmgInput)
+	}
+	if slot == GameDB_Item_Slot_Weapon_OffHand {
+		weapon := source.Character.EquippedItemOffhandId
+		dmgInput = randomFloatInt(state.GameDB.Items[weapon].DamageMin, state.GameDB.Items[weapon].DamageMax)
+		fmt.Printf("\napplyAutoattackDamage (%v) %v to unit %v\n", slot, dmgInput, p.Id)
+		speed := state.GameDB.Items[weapon].AttackSpeed * source.Character.getMeeleAttackSpeed()
+		dmgInput += source.Character.getMeeleAttackPower() / (1 / speed)
+		fmt.Printf("\nadded AP to-> %v\n", dmgInput)
+		miss *= 2
+	}
 
-	dmgInput := float32(1)//randomFloatInt(effect.Type.(*GameDB_Effect_Damage).ValueMin, effect.Type.(*GameDB_Effect_Damage).ValueMax)
-	fmt.Printf("\napplyAutoattackDamage %v to unit %v\n", dmgInput, p.Id)
 	
 	roll := randomPercentage()
-	miss := (1 - source.Character.getMeeleHitChance())
 	dodge := p.Character.getDodgeChance()
 	parry := p.Character.getParryChance()
 	if behind {
@@ -48,7 +64,7 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 			SourceId: creator,
 			DestinationId: p.Id,
 			//SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
-			Source: PublicMatchState_CombatLogEntry_Spell,
+			Source: PublicMatchState_CombatLogEntry_Autoattack,
 			Type: &PublicMatchState_CombatLogEntry_MissedType{ fail },
 		}
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
@@ -56,7 +72,7 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	
 
 	block := p.Character.getBlockPercentage()
-	if behind {
+	if behind || state.GameDB.Items[source.Character.EquippedItemOffhandId].Type != GameDB_Item_Type_Weapon_Shield {
 		block = 0
 	}
 	armor := p.Character.getArmor() / (p.Character.getArmor() + 40)
@@ -204,11 +220,11 @@ func (p PublicMatchState_Interactable) startAutoattack(state *MatchState, attack
 	}
 
 	if failedMessage != "" {
-		fmt.Printf("startAutoattack failed: %v", failedMessage)
+		fmt.Printf("startAutoattack failed: %v\n", failedMessage)
 		clEntry := &PublicMatchState_CombatLogEntry {
 			Timestamp: state.PublicMatchState.Tick,
 			SourceId: p.Id,
-			Source: PublicMatchState_CombatLogEntry_Swing,
+			Source: PublicMatchState_CombatLogEntry_Autoattack,
 			Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
 				Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
 				FailedMessage: failedMessage,
@@ -236,8 +252,27 @@ func (p PublicMatchState_Interactable) startAutoattack(state *MatchState, attack
 }
 
 func (p PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB_Item_Slot, targetId string) {
-	fmt.Printf("TODO: func (p PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB_Item_Slot) %v\n", slot)
-	state.PublicMatchState.Interactable[targetId].Character.CurrentHealth -= 10;	
+	target := state.PublicMatchState.Interactable[targetId]
+	distance := p.Position.distance(target.Position)	
+	
+	if distance > state.GameDB.Items[p.Character.EquippedItemMainhandId].Range {
+		fmt.Printf("startAutoattack failed: Out of Range!\n")
+		clEntry := &PublicMatchState_CombatLogEntry {
+			Timestamp: state.PublicMatchState.Tick,
+			SourceId: p.Id,
+			Source: PublicMatchState_CombatLogEntry_Autoattack,
+			Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
+				Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
+				FailedMessage: "Out of Range!",
+			}},
+		}
+		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+
+		p.getInternalPlayer(state).stopAutoattackTimer()
+
+		return
+	}
+	target.applyAutoattackDamage(state, p.Id, slot)
 }
 
 //casts

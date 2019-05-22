@@ -18,7 +18,7 @@ message PublicMatchState {
 
 		CombatLogEntry_Source source = 4;
 		enum CombatLogEntry_Source {
-			Swing = 0;
+			Autoattack = 0;
 			Range = 1;
 			Spell = 2;
 			Periodic = 3;
@@ -68,6 +68,15 @@ message PublicMatchState {
 				Refreshed = 2;
 				Depleted = 3;
 			}
+		}
+		message CombatLogEntry_Autoattack {
+			CombatLogEntry_Autoattack event = 1;
+			enum CombatLogEntry_Autoattack {
+				Start = 0;
+				Success = 1;
+				Failed = 2;
+			}
+			string failed_message = 2;
 		}
 		message CombatLogEntry_Cast {
 			CombatLogEntry_Aura_Event event = 1;

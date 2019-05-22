@@ -51,6 +51,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 			Combatlog: make([]*PublicMatchState_CombatLogEntry, 0),
 		},
 		InternalPlayer: make(map[string]*InternalPlayer),
+		PresenceList: make(map[string]*runtime.Presence),
 		runtimeSet: make([]int64, 20),
 		TickRate: tickRate,
 	}
