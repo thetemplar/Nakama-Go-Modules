@@ -50,6 +50,8 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 			Projectile: make(map[string]*PublicMatchState_Projectile),
 			Combatlog: make([]*PublicMatchState_CombatLogEntry, 0),
 		},
+
+		
 		InternalPlayer: make(map[string]*InternalPlayer),
 		PresenceList: make(map[string]*runtime.Presence),
 		runtimeSet: make([]int64, 20),
@@ -120,7 +122,10 @@ func SpawnPlayer(state *MatchState, userId string) {
 	state.PublicMatchState.Interactable[userId] = &PublicMatchState_Interactable{
 		Id: userId,
 		Type: PublicMatchState_Interactable_Player,
-		Position: &PublicMatchState_Vector2Df { },
+		Position: &PublicMatchState_Vector2Df { 
+			X: 0.1,
+			Y: 0.1,
+		},
 		Character: &Character {
 			Class: Character_Cleric,
 			BaseStats: &CharacterStats {
@@ -264,6 +269,9 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//get new input-counts
 	for _, message := range messages { 
+		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil {
+			continue
+		}
 		if(message.GetOpCode() == 0) {
 			state.(*MatchState).InternalPlayer[message.GetUserId()].MessageCountThisFrame++
 		}
@@ -271,6 +279,9 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//get new inputs
 	for _, message := range messages { 
+		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil && message.GetOpCode() != 100 {
+			continue
+		}
 		//logger.Printf("message from %v with opcode %v", message.GetUserId(), message.GetOpCode())
 		//entry.UserID, entry.SessionId, entry.Username, entry.Node, entry.OpCode, entry.Data, entry.ReceiveTime
 		currentPlayerInternal := state.(*MatchState).InternalPlayer[message.GetUserId()];
