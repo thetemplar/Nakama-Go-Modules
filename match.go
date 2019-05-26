@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"fmt"
 	"strconv"
+	"math"
 )
 
 type MatchState struct {
@@ -119,6 +120,7 @@ func SpawnPlayer(state *MatchState, userId string) {
 		return
 	}
 
+
 	state.PublicMatchState.Interactable[userId] = &PublicMatchState_Interactable{
 		Id: userId,
 		Type: PublicMatchState_Interactable_Player,
@@ -151,7 +153,8 @@ func SpawnPlayer(state *MatchState, userId string) {
 		TriangleIndex: -1,
 		StatModifiers: PlayerStats {},
 	}
-	
+
+	fmt.Printf(" new character %v spawn @ %v\n", userId, state.PublicMatchState.Interactable[userId].Position)
 }
 
 func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, presences []runtime.Presence) interface{} {
@@ -180,6 +183,7 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 
 func PerformMovement(logger runtime.Logger, state interface{}, playerId string, xAxis, yAxis, rotation float32, tickrate int) {
 
+
 	currentPlayerInternal := state.(*MatchState).InternalPlayer[playerId];
 	currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[playerId];
 	
@@ -188,6 +192,10 @@ func PerformMovement(logger runtime.Logger, state interface{}, playerId string, 
 		X: xAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
 		Y: yAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
 	}
+	
+	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
+		return
+	}
 
 	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_None && (xAxis != 0 || yAxis != 0) {
 		fmt.Printf("cancelCast %v\n", currentPlayerInternal.CastingSpellId)
@@ -195,6 +203,8 @@ func PerformMovement(logger runtime.Logger, state interface{}, playerId string, 
 	}
 
 	rotatedAdd := add.rotate(rotation)
+		
+
 	currentPlayerPublic.Position.X += rotatedAdd.X;
 	currentPlayerPublic.Position.Y += rotatedAdd.Y;
 	currentPlayerPublic.Rotation = rotation;
@@ -224,8 +234,7 @@ func PerformMovement(logger runtime.Logger, state interface{}, playerId string, 
 			currentPlayerPublic.Position.X -= rotatedAdd.X;
 			currentPlayerPublic.Position.Y -= rotatedAdd.Y;
 		} 
-	}
-
+	}	
 }
 
 func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, messages []runtime.MatchData) interface{} {
