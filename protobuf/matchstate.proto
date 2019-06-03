@@ -180,5 +180,5 @@ message Client_CancelAttack {
 
 //opId = 100
 message Client_SelectCharacter {
-	Character.ClassName class = 1;
+	string classname = 1;
 }

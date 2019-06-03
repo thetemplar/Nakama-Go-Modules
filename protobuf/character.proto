@@ -7,30 +7,13 @@ option csharp_namespace = "NakamaMinimalGame.Character";
 //https://lotro-wiki.com/index.php/Rating_to_percentage_formula
 
 message Character {
-    ClassName class = 1;
-    enum ClassName {
-        Warrior = 0;
-        Ranger = 1;
-        Warlock = 2;
-        Wizard = 3;
-        Cleric = 4;
-        Rouge = 5;
-        Priest = 6;
-    }
+    string classname = 1;
     int32 level = 2;
-    CharacterStats base_stats = 3;
     
     int64 equipped_item_mainhand_id = 4;
     int64 equipped_item_offhand_id = 5;
     
     float current_health = 6;
     float current_power = 7;
-}
-
-message CharacterStats {
-    int32 strength = 1;
-    int32 agility = 2;
-    int32 stamina = 3;
-    int32 intellect = 4;
-    int32 wisdom = 5;
+    
 }

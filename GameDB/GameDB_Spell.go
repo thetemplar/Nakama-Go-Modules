@@ -32,7 +32,8 @@ type GameDB_Spell struct {
 	
 	InterruptedBy		GameDB_Interrupt_Type
 
-	Effect			    []*GameDB_Effect
+	ApplyEffect			[]*GameDB_Effect
+	ApplyProc			[]*GameDB_Proc
 }
 
 type GameDB_Spell_Application_Type int

@@ -32,7 +32,7 @@ func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMa
 
 
 func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchState_Interactable, projectile *PublicMatchState_Projectile, spell *GameDB_Spell) {
-	for _, effect := range spell.Effect { 
+	for _, effect := range spell.ApplyEffect { 
 		fmt.Printf("Apply Effect on Hit %v\n", effect)
 		if effect.Duration > 0 {
 			i := target.containsEffectId(effect.Id, projectile.Creator)

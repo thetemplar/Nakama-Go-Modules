@@ -30,6 +30,10 @@ type MatchState struct {
 	runtimeSetIndex		int
 }  
 
+func (ms *MatchState) GetClassFromDB(char *Character) *GameDB_Class {
+	return ms.GameDB.Classes[char.Classname]
+}
+
 type Match struct{
 }
 
@@ -75,14 +79,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		Auras: make([]*PublicMatchState_Aura, 0),
 		Character: &Character {
-			Class: Character_Cleric,
-			BaseStats: &CharacterStats {
-				Strength: 1,
-				Agility: 1,
-				Stamina: 1,
-				Intellect: 1,
-				Wisdom: 1,
-			},
+			Classname: "Mage",
 			EquippedItemMainhandId: 1,
 			EquippedItemOffhandId: 2,
 			CurrentHealth: 100,
@@ -114,12 +111,10 @@ func (m *Match) MatchJoinAttempt(ctx context.Context, logger runtime.Logger, db 
 	return state, true, ""
 }
 
-func SpawnPlayer(state *MatchState, userId string) {
-
-	if state.PublicMatchState.Interactable[userId] != nil || state.InternalPlayer[userId] != nil {
+func SpawnPlayer(state *MatchState, userId string, classname string) {
+	if state.PublicMatchState.Interactable[userId] != nil || state.InternalPlayer[userId] != nil || state.GameDB.Classes[classname] == nil {
 		return
 	}
-
 
 	state.PublicMatchState.Interactable[userId] = &PublicMatchState_Interactable{
 		Id: userId,
@@ -129,14 +124,7 @@ func SpawnPlayer(state *MatchState, userId string) {
 			Y: 0.1,
 		},
 		Character: &Character {
-			Class: Character_Cleric,
-			BaseStats: &CharacterStats {
-				Strength: 1,
-				Agility: 1,
-				Stamina: 1,
-				Intellect: 1,
-				Wisdom: 1,
-			},
+			Classname: classname,
 			EquippedItemMainhandId: 1,
 			EquippedItemOffhandId: 2,
 			CurrentHealth: 100,
@@ -154,7 +142,7 @@ func SpawnPlayer(state *MatchState, userId string) {
 		StatModifiers: PlayerStats {},
 	}
 
-	fmt.Printf(" new character %v spawn @ %v\n", userId, state.PublicMatchState.Interactable[userId].Position)
+	fmt.Printf("new character %v spawn @ %v\n", userId, state.PublicMatchState.Interactable[userId].Position)
 }
 
 func (m *Match) MatchJoin(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, presences []runtime.Presence) interface{} {
@@ -253,7 +241,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		
 		//finish casts
 		if player.CastingTickEnd <= tick && player.CastingSpellId > 0 {
-			currentPlayerPublic.finishCast(state.(*MatchState), player.CastingSpellId, player.CastingTargeted)
+			currentPlayerPublic.finishCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[player.CastingSpellId], player.CastingTargeted)
 			player.stopCastTimer()
 		}
 		
@@ -262,14 +250,14 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed() * float32(tickrate)) + tick
+			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMeeleAttackSpeed(currentPlayerPublic.Character) * float32(tickrate)) + tick
 		}
 		//finish swing offhand
 		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0{
 			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed() * float32(tickrate)) + tick
+			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMeeleAttackSpeed(currentPlayerPublic.Character) * float32(tickrate)) + tick
 		}
 			
 		//substract GCD
@@ -322,7 +310,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
 				logger.Printf("Failed to parse incoming SendPackage Client_Cast:", err)
 			}
-			currentPlayerPublic.startCast(state.(*MatchState), msg.SpellId)
+			currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spellbook[msg.SpellId])
 		} else if message.GetOpCode() == 2 {
 			msg := &Client_Autoattack{}
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
@@ -336,7 +324,11 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			currentPlayerInternal.stopAutoattackTimer();
 			currentPlayerInternal.stopCastTimer();
 		} else if message.GetOpCode() == 100 {
-			SpawnPlayer(state.(*MatchState), message.GetUserId())
+			msg := &Client_SelectCharacter{}
+			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
+				logger.Printf("Failed to parse incoming SendPackage Client_SelectCharacter:", err)
+			}
+			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.Classname)
 		}  
 	}
 	

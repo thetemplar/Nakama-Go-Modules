@@ -1,9 +1,16 @@
 package main
 
-type GameDB_Proc struct {
-	Spell 				*GameDB_Spell
-	Proc				[]*GameDB_Proc_Event
+type GameDB_Proc struct {	
+	Id					int64
+	Name 				string
+	Description 		string
+	Visible				bool
+
+	OnEvent				[]*GameDB_Proc_Event
 	Chance				float32
+	Cooldown			float32
+
+	SpellTriggered		*GameDB_Spell
 }
 
 type GameDB_Proc_Event int8
