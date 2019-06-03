@@ -7,7 +7,7 @@ func init_db() *GameDB {
 		Effects: make(map[int64]*GameDB_Effect),
 		Procs: make(map[int64]*GameDB_Proc),
 		Items: make(map[int64]*GameDB_Item),
-		Spellbook: make([]*GameDB_Spell, 0),
+		Classes: make(map[string]*GameDB_Class),
 	}
 
 	sword := &GameDB_Item{
@@ -142,7 +142,7 @@ func init_db() *GameDB {
 		EffectID			:0,
 		IconID		 		:1,
 		Speed				:60,
-		ApplicationType     :GameDB_Spell_ApplicationType_Missile,
+		Application_Type     :GameDB_Spell_Application_Type_Missile,
 	
 		BaseCost			:10,
 		CostPerSec			:0,
@@ -155,11 +155,11 @@ func init_db() *GameDB {
 		TargetAuraRequired 	:0,
 		CasterAuraRequired 	:0,
 		
-		Target				:GameDB_Spell_Target_Unit,
+		Target_Type			:GameDB_Spell_Target_Type_Unit,
 	
 		Effect			    :[]*GameDB_Effect { GameDB.Effects[2] },
 		
-		InterruptedBy		:GameDB_Interrupt_OnMovement,
+		InterruptedBy		:GameDB_Interrupt_Type_OnMovement,
 	}
 	GameDB.Spells[1] = fireball
 	
@@ -178,7 +178,7 @@ func init_db() *GameDB {
 		EffectID			:0,
 		IconID		 		:2,
 		Speed				:40,
-		ApplicationType     :GameDB_Spell_ApplicationType_Missile,
+		Application_Type     :GameDB_Spell_Application_Type_Missile,
 	
 		BaseCost			:5,
 		CostPerSec			:0,
@@ -191,11 +191,11 @@ func init_db() *GameDB {
 		TargetAuraRequired 	:0,
 		CasterAuraRequired 	:0,
 		
-		Target				:GameDB_Spell_Target_Unit,
+		Target_Type			:GameDB_Spell_Target_Type_Unit,
 	
 		Effect			    :[]*GameDB_Effect { GameDB.Effects[3], GameDB.Effects[4] },
 		
-		InterruptedBy		:GameDB_Interrupt_None,
+		InterruptedBy		:GameDB_Interrupt_Type_None,
 	}
 	GameDB.Spells[2] = frostbolt
 
@@ -214,7 +214,7 @@ func init_db() *GameDB {
 		EffectID			:0,
 		IconID		 		:3,
 		Speed				:1000,
-		ApplicationType     :GameDB_Spell_ApplicationType_Beam,
+		Application_Type     :GameDB_Spell_Application_Type_Beam,
 	
 		BaseCost			:5,
 		CostPerSec			:0,
@@ -227,11 +227,11 @@ func init_db() *GameDB {
 		TargetAuraRequired 	:0,
 		CasterAuraRequired 	:0,
 		
-		Target				:GameDB_Spell_Target_Unit,
+		Target_Type			:GameDB_Spell_Target_Type_Unit,
 	
 		Effect			    :[]*GameDB_Effect { GameDB.Effects[5], GameDB.Effects[6] },
 		
-		InterruptedBy		:GameDB_Interrupt_None,
+		InterruptedBy		:GameDB_Interrupt_Type_None,
 	}
 	GameDB.Spells[3] = sunburn
 

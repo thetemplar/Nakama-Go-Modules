@@ -197,7 +197,7 @@ func PerformMovement(logger runtime.Logger, state interface{}, playerId string, 
 		return
 	}
 
-	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_None && (xAxis != 0 || yAxis != 0) {
+	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_Type_None && (xAxis != 0 || yAxis != 0) {
 		fmt.Printf("cancelCast %v\n", currentPlayerInternal.CastingSpellId)
 		currentPlayerPublic.cancelCast(state.(*MatchState))
 	}

@@ -285,7 +285,7 @@ func (p PublicMatchState_Interactable) startCast(state *MatchState, spellId int6
 		failedMessage = "Cannot do that now!"
 	}
 
-	if spell.Target != GameDB_Spell_Target_None && p.Target == "" {
+	if spell.Target_Type != GameDB_Spell_Target_Type_None && p.Target == "" {
 		failedMessage = "No Target!"
 	}
 
@@ -326,7 +326,7 @@ func (p PublicMatchState_Interactable) startCast(state *MatchState, spellId int6
 	} else {
 		end := int64(spell.CastTime * p.Character.getSpellAttackSpeed() * float32(state.TickRate)) + state.PublicMatchState.Tick
 		target := ""
-		if spell.Target != GameDB_Spell_Target_None {
+		if spell.Target_Type != GameDB_Spell_Target_Type_None {
 			target = targetId
 		} 
 		currentPlayerInternal.startCastTimer(spellId, end, target)

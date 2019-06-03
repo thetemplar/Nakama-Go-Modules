@@ -29,6 +29,10 @@ func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		return err
 	}	
 
+	if err := initializer.RegisterRpc("getGameDatabase", GetGameDatabase); err != nil {
+		return err
+	}	
+
 
 	//send note to blocked user & send refresh friendlist notification
 	if err := initializer.RegisterAfterBlockFriends(NotificationBlockFriends); err != nil {
@@ -163,6 +167,20 @@ func GetPlayers(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 	if err != nil {
 		logger.Printf("Error converting players to json.", (err))
     }
+	return string(b), nil
+}
+
+
+func GetGameDatabase(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, payload string) (string, error) {
+	
+	GameDB := init_db()
+
+
+	b, err := json.Marshal(GameDB)
+	if err != nil {
+		logger.Printf("Error converting GameDB to json.", (err))
+    }
+	logger.Printf(string(b))
 	return string(b), nil
 }
 
