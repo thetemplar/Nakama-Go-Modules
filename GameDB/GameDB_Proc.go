@@ -6,11 +6,11 @@ type GameDB_Proc struct {
 	Description 		string
 	Visible				bool
 
-	OnEvent				[]*GameDB_Proc_Event
+	OnEvent				*GameDB_Proc_Event
 	Chance				float32
 	Cooldown			float32
 
-	SpellTriggered		*GameDB_Spell
+	//SpellTriggered		*GameDB_Spell
 }
 
 type GameDB_Proc_Event int8

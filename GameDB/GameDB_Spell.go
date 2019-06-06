@@ -22,7 +22,7 @@ type GameDB_Spell struct {
 	CostPercentage  	int32
 	
 	CastTime 			float32
-	CastTimeChanneled	bool
+	CastTimeChanneled	float32
 	Range				float32
 	FacingFront			bool
 
