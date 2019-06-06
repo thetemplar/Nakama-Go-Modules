@@ -37,6 +37,11 @@ type GameDB_Effect_Apply_Aura_Mod struct {
 	Value 			float32
 }
 
+type GameDB_Effect_Persistent_Area_Aura struct {
+	Intervall   	float32
+	Radius		   	float32
+}
+
 type GameDB_Stat int
 const (
 	GameDB_Stat_Speed = 0

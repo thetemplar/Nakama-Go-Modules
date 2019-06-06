@@ -31,4 +31,5 @@ type GameDB_Item_Slot int
 const (
 	GameDB_Item_Slot_Weapon_MainHand = 0;
 	GameDB_Item_Slot_Weapon_OffHand = 1;
+	GameDB_Item_Slot_Weapon_BothHands = 2;
 )

@@ -10,6 +10,8 @@ func init_db() *GameDB {
 		Classes: make(map[string]*GameDB_Class),
 	}
 
+
+	//ITEMS
 	sword := &GameDB_Item{
 		Id				:1,
 		Name 			:"Sword",
@@ -37,6 +39,8 @@ func init_db() *GameDB {
 	}
 	GameDB.Items[shield.Id] = shield
 
+
+	//EFFECTS
 	autoattack := &GameDB_Effect{
 		Id				:1,
 		Name 			:"Meele",
@@ -127,6 +131,9 @@ func init_db() *GameDB {
 	}
 	GameDB.Effects[sunburn_dot.Id] = sunburn_dot
 	
+
+
+	//SPELLS
 	fireball := &GameDB_Spell{
 		Id					:1,
 		Name 				:"Fireball",
@@ -240,7 +247,7 @@ func init_db() *GameDB {
 
 
 
-	//combine into classes
+	//CLASSES
 	mage := &GameDB_Class{		
 		Name 			:"Mage",
 		
