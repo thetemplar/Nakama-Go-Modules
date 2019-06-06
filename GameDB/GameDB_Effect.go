@@ -45,6 +45,13 @@ type GameDB_Effect_Persistent_Area_Aura struct {
 type GameDB_Stat int
 const (
 	GameDB_Stat_Speed = 0
+	GameDB_Stat_Stamina = 1
+	GameDB_Stat_Strength = 2
+	GameDB_Stat_Agility = 3
+	GameDB_Stat_Intellect = 4
+	GameDB_Stat_PhysicalAP = 5
+	GameDB_Stat_SpellAP = 6
+	GameDB_Stat_Armor = 7
 )
 
 type GameDB_Spell_SchoolType int
