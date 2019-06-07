@@ -24,10 +24,31 @@ func (v PublicMatchState_Vector2Df) isBehind(t *PublicMatchState_Vector2Df, rota
 	if v.distance(t) < 1 {
 		return false
 	}
-	//x := v.X - t.X
-	//y := v.Y - t.Y
+	x := v.X - t.X
+	y := v.Y - t.Y
 
-	fmt.Println("TODO -> func (v PublicMatchState_Vector2Df) isBehind (t PublicMatchState_Vector2Df, rotation float32) bool")
+	x2 := math.Cos(rotation * x) - math.Sin(rotation * y) 
+	y2 := math.Sin(rotation * x) + math.Cos(rotation * y) 
+
+	if(x2 < 0){
+		return true
+	} 
+	return false
+}
+
+func (v PublicMatchState_Vector2Df) isFacedBy(t *PublicMatchState_Vector2Df, rotation float32) bool {
+	if v.distance(t) < 1 {
+		return false
+	}
+	x := v.X - t.X
+	y := v.Y - t.Y
+
+	x2 := math.Cos(rotation * x) - math.Sin(rotation * y) 
+	y2 := math.Sin(rotation * x) + math.Cos(rotation * y) 
+
+	if(x2 > 0 && math.Abs(y2) > x2){
+		return true
+	} 
 	return false
 }
 
