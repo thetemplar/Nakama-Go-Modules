@@ -310,7 +310,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
 				logger.Printf("Failed to parse incoming SendPackage Client_Cast:", err)
 			}
-			currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spellbook[msg.SpellId])
+			currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spells[msg.SpellId])
 		} else if message.GetOpCode() == 2 {
 			msg := &Client_Autoattack{}
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {

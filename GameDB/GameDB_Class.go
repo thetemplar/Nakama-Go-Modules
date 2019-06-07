@@ -2,8 +2,9 @@ package main
 
 type GameDB_Class struct {
 	Name 					string
+	Description 			string
 
-	Spellbook				[]*GameDB_Spell
+	Spells					[]*GameDB_Spell
 	Items					[]*GameDB_Item
 	Procs					[]*GameDB_Proc
 

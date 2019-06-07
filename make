@@ -1,6 +1,7 @@
 #export GOROOT=/usr/local/go
 #export GOPATH=$HOME/go                                                                                                                                                                                                         
 #export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+gofmt -w init.go
 rm modules/plugin.so &> /dev/null
 cd protobuf
 protoc --gofast_out=../ --csharp_out=. matchstate.proto
