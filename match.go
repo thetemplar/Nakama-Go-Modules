@@ -43,7 +43,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 	for _, entry := range params { 
 		logger.Printf("%+v\n", entry)
 	}
-
+	
 	tickRate := 10
 	label := ""
 

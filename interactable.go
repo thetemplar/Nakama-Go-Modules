@@ -20,8 +20,6 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	thisClass := state.GetClassFromDB(p.Character)
 
 	miss := (1 - sourceClass.getMeeleHitChance(sourceChar))
-	//behind?
-	behind := source.Position.isBehind(p.Position, p.Rotation)
 	dmgInput := float32(0)
 	if slot == GameDB_Item_Slot_Weapon_MainHand {
 		weapon := sourceChar.EquippedItemMainhandId
@@ -45,6 +43,7 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	roll := randomPercentage()
 	dodge := thisClass.getDodgeChance(thisChar)
 	parry := thisClass.getParryChance(thisChar)
+	behind := source.Position.isBehind(p.Position, p.Rotation)
 	if behind {
 		dodge = 0
 		parry = 0
@@ -305,8 +304,13 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 
 	targetId := p.Target
 	target := state.PublicMatchState.Interactable[targetId]
-	distance := p.Position.distance(target.Position)	
+	distance := p.Position.distance(target.Position)		
 	
+	behind := target.Position.isFacedBy(p.Position, p.Rotation)
+	if spell.FacingFront && !behind {
+		failedMessage = "Is not facing target!"
+	}
+
 	if distance > spell.Range {
 		failedMessage = "Out of Range!"
 	}

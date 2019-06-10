@@ -2,7 +2,6 @@ package main
 
 import (
 	"math"
-	"fmt"
 )
 
 func (v PublicMatchState_Vector2Df) rotate(degrees float32) PublicMatchState_Vector2Df {
@@ -20,17 +19,29 @@ func (v PublicMatchState_Vector2Df) distance(t *PublicMatchState_Vector2Df) floa
 	return float32(math.Sqrt(math.Pow(float64(t.X - v.X), 2) + math.Pow(float64(t.Y - v.Y), 2)))
 }
 
+//returns -180 <> +180 degree
+func (v PublicMatchState_Vector2Df) getAngleBehindTarget (t *PublicMatchState_Vector2Df, rotation float32) float64 {
+	xDiff := float64(v.X - t.X)
+	yDiff := float64(v.Y - t.Y)
+		
+	ca := math.Cos(float64(rotation) * 0.01745329251); //0.01745329251
+	sa := math.Sin(float64(rotation) * 0.01745329251);
+	
+	x := ca * xDiff - sa * yDiff
+	y := sa * xDiff + ca * yDiff
+
+	res := math.Atan2(float64(x), float64(y)) * 57.2957795131;
+
+	return res
+}
+
 func (v PublicMatchState_Vector2Df) isBehind(t *PublicMatchState_Vector2Df, rotation float32) bool {
 	if v.distance(t) < 1 {
 		return false
 	}
-	x := v.X - t.X
-	y := v.Y - t.Y
+	absAngle := math.Abs(v.getAngleBehindTarget(t, rotation))
 
-	x2 := math.Cos(rotation * x) - math.Sin(rotation * y) 
-	y2 := math.Sin(rotation * x) + math.Cos(rotation * y) 
-
-	if(x2 < 0){
+	if(absAngle > 120){
 		return true
 	} 
 	return false
@@ -38,15 +49,11 @@ func (v PublicMatchState_Vector2Df) isBehind(t *PublicMatchState_Vector2Df, rota
 
 func (v PublicMatchState_Vector2Df) isFacedBy(t *PublicMatchState_Vector2Df, rotation float32) bool {
 	if v.distance(t) < 1 {
-		return false
+		return true
 	}
-	x := v.X - t.X
-	y := v.Y - t.Y
+	absAngle := math.Abs(v.getAngleBehindTarget(t, rotation))
 
-	x2 := math.Cos(rotation * x) - math.Sin(rotation * y) 
-	y2 := math.Sin(rotation * x) + math.Cos(rotation * y) 
-
-	if(x2 > 0 && math.Abs(y2) > x2){
+	if(absAngle < 60){
 		return true
 	} 
 	return false
