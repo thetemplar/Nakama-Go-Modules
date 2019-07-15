@@ -276,14 +276,13 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 
 	//get new inputs
 	for _, message := range messages { 
-		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil && message.GetOpCode() != 100 {
+		if (state.(*MatchState).InternalPlayer[message.GetUserId()] == nil && message.GetOpCode() != 100) || message.GetOpCode() == 255 {
 			continue
 		}
 		//logger.Printf("message from %v with opcode %v", message.GetUserId(), message.GetOpCode())
 		//entry.UserID, entry.SessionId, entry.Username, entry.Node, entry.OpCode, entry.Data, entry.ReceiveTime
 		currentPlayerInternal := state.(*MatchState).InternalPlayer[message.GetUserId()];
 		currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
-
 		if message.GetOpCode() == 0 {
 			/*if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
 				return
@@ -310,7 +309,13 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
 				logger.Printf("Failed to parse incoming SendPackage Client_Cast:", err)
 			}
-			currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spells[msg.SpellId])
+			//is the spell in his spellbook?
+			for _, spell := range state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spells {
+				if (spell.Id == msg.SpellId) {
+					currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[msg.SpellId])
+					break
+				}
+			}
 		} else if message.GetOpCode() == 2 {
 			msg := &Client_Autoattack{}
 			if err := proto.Unmarshal(message.GetData(), msg); err != nil {

@@ -288,7 +288,8 @@ func (p *PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot
 }
 
 //casts
-func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *GameDB_Spell) {
+func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *GameDB_Spell) {		
+	fmt.Printf("startCast: %v %v\n", spell.Id, spell.Name)
 	thisChar := p.Character
 	thisClass := state.GetClassFromDB(p.Character)
 	currentPlayerInternal := p.getInternalPlayer(state)
@@ -311,7 +312,8 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 		failedMessage = "Is not facing target!"
 	}
 
-	if distance > spell.Range {
+	if distance > spell.Range {	
+		fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
 		failedMessage = "Out of Range!"
 	}
 
