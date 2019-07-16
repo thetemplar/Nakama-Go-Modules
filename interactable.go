@@ -151,7 +151,7 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	}
 
 	resist := thisClass.getResistance(thisChar, effect.School)
-	dmgResisted := dmgInput * resist
+	dmgResisted := dmgInput * resist / 100
 	dmgInput = dmgInput - dmgResisted
 	fmt.Printf("magical reduction by resistance (%v) by %v -> %v\n", resist, dmgResisted, dmgInput)
 
