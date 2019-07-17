@@ -32,6 +32,13 @@ type InternalPlayer struct {
 	//playerstats
 	BasePlayerStats				PlayerStats
 	StatModifiers				PlayerStats
+
+	//regen
+	LastRegenTick				int64
+	LastHealthDrainTick			int64
+	LastPowerDrainTick			int64
+
+	
 }
 
 type PlayerStats struct{

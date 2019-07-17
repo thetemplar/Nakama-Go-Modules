@@ -83,7 +83,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 			EquippedItemMainhandId: 1,
 			EquippedItemOffhandId: 2,
 			CurrentHealth: 100,
-			CurrentPower: 0,
+			CurrentPower: 10,
 		},
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
@@ -407,8 +407,22 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		if projectile == nil || projectile.CreatedAtTick == tick {
 			continue
 		}
-		fmt.Printf("calc proj %v\n", projectile)
-		projectile.Run(state.(*MatchState), projectile, tickrate)		
+		projectile.Run(state.(*MatchState), projectile, tickrate)	
+	}
+
+	//regen
+	for _, player := range state.(*MatchState).InternalPlayer {
+		fmt.Printf("regen > %v\n", player.Id)
+		if(player.LastRegenTick + int64(tickrate) < tick) {
+			player.LastRegenTick = tick
+			regenPercHP := float64((tick - player.LastHealthDrainTick) / 10) //secs since last dmg
+			regenPercHP = math.Max(0, math.Min(1, regenPercHP / 10.0)) //0-100%
+			
+			regenPercPower := float64((tick - player.LastPowerDrainTick) / 10) //secs since last dmg
+			regenPercPower = math.Max(0, math.Min(1, regenPercPower / 10.0)) //0-100%
+
+			player.getPublicPlayer(state.(*MatchState)).Regen(state.(*MatchState), regenPercHP, regenPercPower);
+		}
 	}
 
 	//send new game state (by creating protobuf message)
@@ -424,7 +438,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				logger.Printf("Failed to encode PublicMatchState:", err)
 		}
 		//currentPlayerPublic := state.(*MatchState).PublicMatchState.Interactable[player.Id];
-		//fmt.Printf("%v @ %v | %v  GCD: %v | bytes: %v kB/s\n", player.Id, currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y, currentPlayerPublic.GlobalCooldown, float64(len(out) * tickrate) / 1000.0)
+		//fmt.Printf("%v @ %v | %v  GCD: %v -- hp: %v/%v mana: %v/%v -- bytes: %v kB/s\n", player.Id, currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y, currentPlayerPublic.GlobalCooldown, currentPlayerPublic.Character.CurrentHealth, state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMaxHp(currentPlayerPublic.Character), currentPlayerPublic.Character.CurrentPower, state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMaxMana(currentPlayerPublic.Character), float64(len(out) * tickrate) / 1000.0)
 		dispatcher.BroadcastMessage(1, out, []runtime.Presence { player.Presence }, nil)
 	}	
 	

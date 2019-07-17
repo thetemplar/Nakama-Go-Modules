@@ -16,7 +16,6 @@ func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMa
 
 	if distance <= (projectile.Speed / float32(tickrate)) {
 		//impact
-		fmt.Printf("%v impact\n", projectile.Id)
 		spell := state.GameDB.Spells[projectile.SpellId]	
 		projectile.Hit(state, target, projectile, spell)
 		delete(state.PublicMatchState.Projectile, projectile.Id)
@@ -26,8 +25,6 @@ func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMa
 
 	projectile.Position.X = projectile.Position.X + (direction.X * (projectile.Speed / float32(tickrate)))
 	projectile.Position.Y = projectile.Position.Y + (direction.Y * (projectile.Speed / float32(tickrate)))
-
-	fmt.Printf("%v @ %v | %v\n", projectile.Id, projectile.Position.X, projectile.Position.Y)
 }
 
 

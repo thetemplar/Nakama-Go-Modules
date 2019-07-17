@@ -3,11 +3,24 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"math"
 )
 
 //helper
 func (p *PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*InternalPlayer) {
 	return state.InternalPlayer[p.Id];
+}
+
+//regen
+func (p *PublicMatchState_Interactable) Regen(state *MatchState, hpPercent, powerPercent float64) {
+	thisChar := p.Character
+	thisClass := state.GetClassFromDB(p.Character)
+
+	thisChar.CurrentHealth += float32(math.Max(float64(thisClass.getHpRegen(thisChar)) * hpPercent, 0));
+	thisChar.CurrentPower += float32(math.Max(float64(thisClass.getManaRegen(thisChar)) * powerPercent, 0));
+
+	thisChar.CurrentHealth = float32(math.Min(float64(thisChar.CurrentHealth), float64(thisClass.getMaxHp(thisChar))))
+	thisChar.CurrentPower = float32(math.Min(float64(thisChar.CurrentPower), float64(thisClass.getMaxMana(thisChar))))
 }
 
 //fight
@@ -99,7 +112,8 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	if overkill <= 0 {
 		overkill = 0
 	}
-	thisChar.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
+	thisChar.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;
+	p.getInternalPlayer(state).LastHealthDrainTick = state.PublicMatchState.Tick
 	fmt.Printf("applyDamage to %v: %v -> now:  %v\n", p.Id, (dmgInput + dmgInputCrit) - overkill, thisChar.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
@@ -117,7 +131,7 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 			Overkill: overkill,			
 		}},
 	}
-	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)	
 }
 
 func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, effect *GameDB_Effect, creator string) {
@@ -171,6 +185,7 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 		overkill = 0
 	}
 	thisChar.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
+	p.getInternalPlayer(state).LastHealthDrainTick = state.PublicMatchState.Tick
 	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (dmgInput + dmgInputCrit) - overkill, effect, thisChar.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
@@ -298,6 +313,11 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 	if (p.GlobalCooldown > 0 || spell.IgnoresGCD == true) || currentPlayerInternal.CastingSpellId > 0 {
 		failedMessage = "Cannot do that now!"
 	}
+	
+	manacost := float32(spell.BaseCost) + float32(spell.CostPercentage) * thisClass.getMaxMana(thisChar);
+	if manacost > thisChar.CurrentPower {
+		failedMessage = "Not enough Mana!"
+	}
 
 	if spell.Target_Type != GameDB_Spell_Target_Type_None && p.Target == "" {
 		failedMessage = "No Target!"
@@ -341,10 +361,11 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 		currentPlayerInternal.stopAutoattackTimer()
 	}
 	
+	p.getInternalPlayer(state).LastPowerDrainTick = state.PublicMatchState.Tick
 	if spell.CastTime == 0 {
 		p.finishCast(state, spell, targetId)
 	} else {
-		end := int64(spell.CastTime * thisClass.getSpellAttackSpeed(thisChar) * float32(state.TickRate)) + state.PublicMatchState.Tick
+		end := int64(spell.CastTime * (float32(1) - thisClass.getSpellAttackSpeed(thisChar)) * float32(state.TickRate)) + state.PublicMatchState.Tick
 		target := ""
 		if spell.Target_Type != GameDB_Spell_Target_Type_None {
 			target = targetId
@@ -371,8 +392,16 @@ func (p *PublicMatchState_Interactable) cancelCast(state *MatchState) {
 }
 
 func (p *PublicMatchState_Interactable) finishCast(state *MatchState, spell *GameDB_Spell, targetId string) {
-	if !IntersectingBorders(p.Position, state.PublicMatchState.Interactable[targetId].Position, state.Map) {		
-		fmt.Printf("finish cast spell: %v\n", spell.Id)
+	thisChar := p.Character
+	thisClass := state.GetClassFromDB(p.Character)
+
+	if !IntersectingBorders(p.Position, state.PublicMatchState.Interactable[targetId].Position, state.Map) {
+		thisChar.CurrentPower -= float32(spell.BaseCost);
+		thisChar.CurrentPower -= float32(spell.CostPercentage) * thisClass.getMaxMana(thisChar);
+		p.getInternalPlayer(state).LastPowerDrainTick = state.PublicMatchState.Tick	
+
+		fmt.Printf("finish cast spell: %v (mana now: %v)\n", spell.Id, thisChar.CurrentPower)
+
 		p.GlobalCooldown = spell.GlobalCooldown
 		proj := &PublicMatchState_Projectile{
 			Id: "p_" + strconv.FormatInt(state.ProjectileCounter, 16),

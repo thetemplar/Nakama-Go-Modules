@@ -55,6 +55,13 @@ func (dbc *GameDB_Class)  getCurrentIntellect(c *Character) float32 {
 	return dbc.BaseIntellect + dbc.GainIntellect * float32(c.Level)
 }
 
+func (dbc *GameDB_Class)  getMaxHp(c *Character) float32 {
+	return dbc.getCurrentStamina(c) * 10
+}
+func (dbc *GameDB_Class)  getMaxMana(c *Character) float32 {
+	return dbc.getCurrentIntellect(c) * 10
+}
+
 func (dbc *GameDB_Class)  getHpRegen(c *Character) float32 {
 	return dbc.getCurrentStamina(c) * dbc.FactorHPRegen
 }
@@ -64,7 +71,7 @@ func (dbc *GameDB_Class)  getManaRegen(c *Character) float32 {
 
 //meele
 func (dbc *GameDB_Class)  getMeeleAttackSpeed(c *Character) float32 {	
-	return dbc.getCurrentAgility(c) * dbc.FactorMeeleAttackSpeed
+	return (1/(200/(dbc.getCurrentAgility(c) * dbc.FactorMeeleAttackSpeed))) * 0.25 
 }
 
 func (dbc *GameDB_Class)  getMeeleAttackPower(c *Character) float32 {
@@ -72,7 +79,7 @@ func (dbc *GameDB_Class)  getMeeleAttackPower(c *Character) float32 {
 }
 
 func (dbc *GameDB_Class)  getMeeleCritChance(c *Character) float32 {
-	return dbc.getCurrentAgility(c) * dbc.FactorMeeleCriticalHits
+	return (1/(200/(dbc.getCurrentAgility(c) * dbc.FactorMeeleCriticalHits))) * 0.25 
 }
 func (dbc *GameDB_Class)  getMeeleHitChance(c *Character) float32 {
 	return float32(0.8) + float32(c.Level) * float32(0.01)
@@ -80,13 +87,13 @@ func (dbc *GameDB_Class)  getMeeleHitChance(c *Character) float32 {
 
 //spell
 func (dbc *GameDB_Class)  getSpellAttackSpeed(c *Character) float32 {
-	return dbc.getCurrentIntellect(c) * dbc.FactorSpellAttackSpeed
+	return (1/(200/(dbc.getCurrentIntellect(c) * dbc.FactorSpellAttackSpeed))) * 0.25 
 }
 func (dbc *GameDB_Class)  getSpellAttackPower(c *Character) float32 {
 	return dbc.getCurrentIntellect(c) * dbc.FactorSpellAP
 }
 func (dbc *GameDB_Class)  getSpellCritChance(c *Character) float32 {
-	return dbc.getCurrentIntellect(c) * dbc.FactorSpellCriticalHits
+	return (1/(200/(dbc.getCurrentIntellect(c) * dbc.FactorSpellCriticalHits))) * 0.25 
 }
 func (dbc *GameDB_Class)  getSpellHitChance(c *Character) float32 {
 	return float32(0.8) + float32(c.Level) * float32(0.01)
