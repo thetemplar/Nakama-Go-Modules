@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"Nakama-Go-Modules/GameDB"
 )
 
 func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMatchState_Projectile, tickrate int) {
@@ -28,7 +29,7 @@ func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMa
 }
 
 
-func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchState_Interactable, projectile *PublicMatchState_Projectile, spell *GameDB_Spell) {
+func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchState_Interactable, projectile *PublicMatchState_Projectile, spell *GameDB.Spell) {
 	for _, effect := range spell.ApplyEffect { 
 		fmt.Printf("Apply Effect on Hit %v\n", effect)
 		if effect.Duration > 0 {
@@ -54,7 +55,7 @@ func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchS
 				state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
 				switch effect.Type.(type) {
-				case *GameDB_Effect_Apply_Aura_Mod:
+				case *GameDB.Effect_Apply_Aura_Mod:
 					target.recalcStats(state)
 				}
 			} else {
@@ -75,7 +76,7 @@ func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchS
 			}
 		} else {
 			switch effect.Type.(type) {
-			case *GameDB_Effect_Damage:
+			case *GameDB.Effect_Damage:
 				target.applyAbilityDamage(state, effect, projectile.Creator)
 			}
 		}

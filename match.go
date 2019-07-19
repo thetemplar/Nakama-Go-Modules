@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"strconv"
 	"math"
+	"Nakama-Go-Modules/GameDB"
 )
+
 
 type MatchState struct {
 	PublicMatchState    PublicMatchState
@@ -23,14 +25,14 @@ type MatchState struct {
 	ProjectileCounter	int64
 	NpcCounter			int64
 	
-	GameDB				*GameDB
+	GameDB				*GameDB.Database
 	Map					*Map
 	
 	runtimeSet			[]int64
 	runtimeSetIndex		int
 }  
 
-func (ms *MatchState) GetClassFromDB(char *Character) *GameDB_Class {
+func (ms *MatchState) GetClassFromDB(char *Character) *GameDB.Class {
 	return ms.GameDB.Classes[char.Classname]
 }
 
@@ -169,62 +171,6 @@ func (m *Match) MatchLeave(ctx context.Context, logger runtime.Logger, db *sql.D
 	return state
 }
 
-func PerformMovement(logger runtime.Logger, state interface{}, playerId string, xAxis, yAxis, rotation float32, tickrate int) {
-
-
-	currentPlayerInternal := state.(*MatchState).InternalPlayer[playerId];
-	currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[playerId];
-	
-
-	add := PublicMatchState_Vector2Df {
-		X: xAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
-		Y: yAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(tickrate)),
-	}
-	
-	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
-		return
-	}
-
-	if currentPlayerInternal.CastingSpellId > 0 && state.(*MatchState).GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB_Interrupt_Type_None && (xAxis != 0 || yAxis != 0) {
-		fmt.Printf("cancelCast %v\n", currentPlayerInternal.CastingSpellId)
-		currentPlayerPublic.cancelCast(state.(*MatchState))
-	}
-
-	rotatedAdd := add.rotate(rotation)
-		
-
-	currentPlayerPublic.Position.X += rotatedAdd.X;
-	currentPlayerPublic.Position.Y += rotatedAdd.Y;
-	currentPlayerPublic.Rotation = rotation;
-	
-
-	//am i still in my triangle?	
-	if currentPlayerInternal.TriangleIndex >= 0 {
-		isItIn, _, _, _ := state.(*MatchState).Map.Triangles[currentPlayerInternal.TriangleIndex].isInTriangle(currentPlayerPublic.Position)
-		if !isItIn {
-			currentPlayerInternal.TriangleIndex = -1
-		}
-	}
-
-	//no current triangle_index?
-	if currentPlayerInternal.TriangleIndex < 0 {
-		//find triangle I am in
-		found := false
-		for i, triangle := range state.(*MatchState).Map.Triangles {
-			isItIn, _, _, _ := triangle.isInTriangle(currentPlayerPublic.Position)
-			if isItIn {
-				currentPlayerInternal.TriangleIndex = int64(i)
-				found = true
-				break;
-			}
-		}
-		if !found {
-			currentPlayerPublic.Position.X -= rotatedAdd.X;
-			currentPlayerPublic.Position.Y -= rotatedAdd.Y;
-		} 
-	}	
-}
-
 func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, messages []runtime.MatchData) interface{} {
 	if state.(*MatchState).Debug {
 		logger.Printf("match loop match_id %v tick %v", ctx.Value(runtime.RUNTIME_CTX_MATCH_ID), tick)
@@ -247,17 +193,17 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		
 		//finish swing mainhand 
 		if player.Autoattacking && player.AutoattackMainhandTickEnd <= tick && player.AutoattackMainhandTickEnd > 0{
-			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
+			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMeeleAttackSpeed(currentPlayerPublic.Character) * float32(tickrate)) + tick
+			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
 		}
 		//finish swing offhand
 		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0{
-			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB_Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
+			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMeeleAttackSpeed(currentPlayerPublic.Character) * float32(tickrate)) + tick
+			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
 		}
 			
 		//substract GCD
@@ -301,7 +247,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			}
 			currentPlayerPublic.Target = msg.Target;
 
-			PerformMovement(logger, state, message.GetUserId(), msg.XAxis, msg.YAxis, msg.Rotation, tickrate)
+			currentPlayerPublic.PerformMovement(state.(*MatchState), msg.XAxis, msg.YAxis, msg.Rotation)
 			
 			currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
 		} else if message.GetOpCode() == 1 {
@@ -350,7 +296,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 					logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
 				}
 	
-				PerformMovement(logger, state, player.LastMessage.GetUserId(), msg.XAxis, msg.YAxis, msg.Rotation, tickrate)
+				player.getPublicPlayer(state.(*MatchState)).PerformMovement(state.(*MatchState), msg.XAxis, msg.YAxis, msg.Rotation)
 			}
 		}
 	}
@@ -363,8 +309,8 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			effect := state.(*MatchState).GameDB.Effects[aura.EffectId]
 
 			switch effect.Type.(type) {
-			case *GameDB_Effect_Apply_Aura_Periodic_Damage:
-				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB_Effect_Apply_Aura_Periodic_Damage).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
+			case *GameDB.Effect_Apply_Aura_Periodic_Damage:
+				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB.Effect_Apply_Aura_Periodic_Damage).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
 					aura.AuraTickCount++					
 					interactable.applyAbilityDamage(state.(*MatchState), effect, aura.Creator)
 				}
@@ -387,7 +333,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				fmt.Printf("auras run off > %v\n", aura)
 
 				switch effect.Type.(type) {
-				case *GameDB_Effect_Apply_Aura_Mod:
+				case *GameDB.Effect_Apply_Aura_Mod:
 					doRecalc = true //cant do "recalcStats" here, since its not "deleted" yes. only after the loop is complete and Auras[:i] is called!
 				}
 			} else { //stays in the list			

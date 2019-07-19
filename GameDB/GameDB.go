@@ -1,15 +1,15 @@
-package main
+package GameDB
 
-type GameDB struct {
-	Spells				map[int64]*GameDB_Spell
-	Effects				map[int64]*GameDB_Effect
-	Procs				map[int64]*GameDB_Proc
-	Items				map[int64]*GameDB_Item
+type Database struct {
+	Spells				map[int64]*Spell
+	Effects				map[int64]*Effect
+	Procs				map[int64]*Proc
+	Items				map[int64]*Item
 
-	Classes				map[string]*GameDB_Class
+	Classes				map[string]*Class
 }
 
-func (g *GameDB) searchSpellByName(name string) (*GameDB_Spell) {
+func (g *Database) searchSpellByName(name string) (*Spell) {
 	for _, spell := range g.Spells { 
 		if spell.Name == name {
 			return spell;
@@ -18,7 +18,7 @@ func (g *GameDB) searchSpellByName(name string) (*GameDB_Spell) {
 	return nil
 }
 
-func (g *GameDB) searchEffectByName(name string) (*GameDB_Effect) {
+func (g *Database) searchEffectByName(name string) (*Effect) {
 	for _, effect := range g.Effects { 
 		if effect.Name == name {
 			return effect;
@@ -27,7 +27,7 @@ func (g *GameDB) searchEffectByName(name string) (*GameDB_Effect) {
 	return nil
 }
 
-func (g *GameDB) searchItemByName(name string) (*GameDB_Item) {
+func (g *Database) searchItemByName(name string) (*Item) {
 	for _, item := range g.Items { 
 		if item.Name == name {
 			return item;
@@ -36,7 +36,7 @@ func (g *GameDB) searchItemByName(name string) (*GameDB_Item) {
 	return nil
 }
 
-func (g *GameDB) searchProcByName(name string) (*GameDB_Proc) {
+func (g *Database) searchProcByName(name string) (*Proc) {
 	for _, proc := range g.Procs { 
 		if proc.Name == name {
 			return proc;

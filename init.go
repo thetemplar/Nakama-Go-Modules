@@ -1,58 +1,61 @@
 package main
 
-func init_db() *GameDB {
+import (
+	"Nakama-Go-Modules/GameDB"
+)
 
-	GameDB := &GameDB{
-		Spells:  make(map[int64]*GameDB_Spell),
-		Effects: make(map[int64]*GameDB_Effect),
-		Procs:   make(map[int64]*GameDB_Proc),
-		Items:   make(map[int64]*GameDB_Item),
-		Classes: make(map[string]*GameDB_Class),
+func init_db() *GameDB.Database {
+	GameDatabase := &GameDB.Database{
+		Spells:  make(map[int64]*GameDB.Spell),
+		Effects: make(map[int64]*GameDB.Effect),
+		Procs:   make(map[int64]*GameDB.Proc),
+		Items:   make(map[int64]*GameDB.Item),
+		Classes: make(map[string]*GameDB.Class),
 	}
 
 	//ITEMS
-	GameDB_Item_Sword := &GameDB_Item{
+	GameDB_Item_Sword := &GameDB.Item{
 		Id:          1,
 		Name:        "Sword",
 		Description: "Simple Sword",
-		Type:        GameDB_Item_Type_Weapon_OneHand,
-		Slot:        GameDB_Item_Slot_Weapon_MainHand,
+		Type:        GameDB.Item_Type_Weapon_OneHand,
+		Slot:        GameDB.Item_Slot_Weapon_MainHand,
 		DamageMin:   15,
 		DamageMax:   25,
 		AttackSpeed: 2.8,
 		Range:       2,
 		BlockValue:  0,
 	}
-	GameDB.Items[GameDB_Item_Sword.Id] = GameDB_Item_Sword
-	GameDB_Item_Twohander := &GameDB_Item{
+	GameDatabase.Items[GameDB_Item_Sword.Id] = GameDB_Item_Sword
+	GameDB_Item_Twohander := &GameDB.Item{
 		Id:          2,
 		Name:        "Twohander",
 		Description: "Simple Two Handed Sword",
-		Type:        GameDB_Item_Type_Weapon_TwoHand,
-		Slot:        GameDB_Item_Slot_Weapon_BothHands,
+		Type:        GameDB.Item_Type_Weapon_TwoHand,
+		Slot:        GameDB.Item_Slot_Weapon_BothHands,
 		DamageMin:   25,
 		DamageMax:   35,
 		AttackSpeed: 3.7,
 		Range:       2,
 		BlockValue:  0,
 	}
-	GameDB.Items[GameDB_Item_Twohander.Id] = GameDB_Item_Twohander
-	GameDB_Item_Staff := &GameDB_Item{
+	GameDatabase.Items[GameDB_Item_Twohander.Id] = GameDB_Item_Twohander
+	GameDB_Item_Staff := &GameDB.Item{
 		Id:          3,
 		Name:        "Staff",
 		Description: "Simple Caster Staff",
-		Type:        GameDB_Item_Type_Weapon_TwoHand,
-		Slot:        GameDB_Item_Slot_Weapon_BothHands,
+		Type:        GameDB.Item_Type_Weapon_TwoHand,
+		Slot:        GameDB.Item_Slot_Weapon_BothHands,
 		DamageMin:   15,
 		DamageMax:   20,
 		AttackSpeed: 3,
 		Range:       2,
 		BlockValue:  0,
 	}
-	GameDB.Items[GameDB_Item_Staff.Id] = GameDB_Item_Staff
+	GameDatabase.Items[GameDB_Item_Staff.Id] = GameDB_Item_Staff
 
 	//EFFECTS
-	GameDB_Effect_Fireball := &GameDB_Effect{
+	GameDB_Effect_Fireball := &GameDB.Effect{
 		Id:          1,
 		Name:        "Fireball",
 		Description: "Fireball",
@@ -60,14 +63,14 @@ func init_db() *GameDB {
 		EffectID:    0,
 		Duration:    0,
 		Dispellable: false,
-		School:      GameDB_Spell_SchoolType_Fire,
-		Mechanic:    GameDB_Spell_Mechanic_None,
-		Type:        &GameDB_Effect_Damage{},
+		School:      GameDB.Spell_SchoolType_Fire,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type:        &GameDB.Effect_Damage{},
 		ValueMin:    20,
 		ValueMax:    30,
 	}
-	GameDB.Effects[GameDB_Effect_Fireball.Id] = GameDB_Effect_Fireball
-	GameDB_Effect_Frostbolt := &GameDB_Effect{
+	GameDatabase.Effects[GameDB_Effect_Fireball.Id] = GameDB_Effect_Fireball
+	GameDB_Effect_Frostbolt := &GameDB.Effect{
 		Id:          2,
 		Name:        "Frostbolt",
 		Description: "Frostbolt",
@@ -75,14 +78,14 @@ func init_db() *GameDB {
 		EffectID:    0,
 		Duration:    0,
 		Dispellable: false,
-		School:      GameDB_Spell_SchoolType_Frost,
-		Mechanic:    GameDB_Spell_Mechanic_None,
-		Type:        &GameDB_Effect_Damage{},
+		School:      GameDB.Spell_SchoolType_Frost,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type:        &GameDB.Effect_Damage{},
 		ValueMin:    15,
 		ValueMax:    20,
 	}
-	GameDB.Effects[GameDB_Effect_Frostbolt.Id] = GameDB_Effect_Frostbolt
-	GameDB_Effect_Chilled := &GameDB_Effect{
+	GameDatabase.Effects[GameDB_Effect_Frostbolt.Id] = GameDB_Effect_Frostbolt
+	GameDB_Effect_Chilled := &GameDB.Effect{
 		Id:          3,
 		Name:        "Chilled",
 		Description: "Chilled",
@@ -90,17 +93,17 @@ func init_db() *GameDB {
 		EffectID:    0,
 		Duration:    5,
 		Dispellable: true,
-		School:      GameDB_Spell_SchoolType_Frost,
-		Mechanic:    GameDB_Spell_Mechanic_Slowed,
-		Type: &GameDB_Effect_Apply_Aura_Mod{
-			Stat:  GameDB_Stat_Speed,
+		School:      GameDB.Spell_SchoolType_Frost,
+		Mechanic:    GameDB.Spell_Mechanic_Slowed,
+		Type: &GameDB.Effect_Apply_Aura_Mod{
+			Stat:  GameDB.Stat_Speed,
 			Value: 10,
 		},
 		ValueMin: 0,
 		ValueMax: 0,
 	}
-	GameDB.Effects[GameDB_Effect_Chilled.Id] = GameDB_Effect_Chilled
-	GameDB_Effect_Sunburn := &GameDB_Effect{
+	GameDatabase.Effects[GameDB_Effect_Chilled.Id] = GameDB_Effect_Chilled
+	GameDB_Effect_Sunburn := &GameDB.Effect{
 		Id:          4,
 		Name:        "Sunburn",
 		Description: "Sunburn",
@@ -108,14 +111,14 @@ func init_db() *GameDB {
 		EffectID:    0,
 		Duration:    0,
 		Dispellable: false,
-		School:      GameDB_Spell_SchoolType_Fire,
-		Mechanic:    GameDB_Spell_Mechanic_None,
-		Type:        &GameDB_Effect_Damage{},
+		School:      GameDB.Spell_SchoolType_Fire,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type:        &GameDB.Effect_Damage{},
 		ValueMin:    5,
 		ValueMax:    10,
 	}
-	GameDB.Effects[GameDB_Effect_Sunburn.Id] = GameDB_Effect_Sunburn
-	GameDB_Effect_Sunburned := &GameDB_Effect{
+	GameDatabase.Effects[GameDB_Effect_Sunburn.Id] = GameDB_Effect_Sunburn
+	GameDB_Effect_Sunburned := &GameDB.Effect{
 		Id:          5,
 		Name:        "Sunburned",
 		Description: "Sunburn DoT",
@@ -123,20 +126,20 @@ func init_db() *GameDB {
 		EffectID:    0,
 		Duration:    10,
 		Dispellable: true,
-		School:      GameDB_Spell_SchoolType_Fire,
-		Mechanic:    GameDB_Spell_Mechanic_None,
-		Type: &GameDB_Effect_Apply_Aura_Periodic_Damage{
+		School:      GameDB.Spell_SchoolType_Fire,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type: &GameDB.Effect_Apply_Aura_Periodic_Damage{
 			Intervall: 2,
 		},
 		ValueMin: 3,
 		ValueMax: 5,
 	}
-	GameDB.Effects[GameDB_Effect_Sunburned.Id] = GameDB_Effect_Sunburned
+	GameDatabase.Effects[GameDB_Effect_Sunburned.Id] = GameDB_Effect_Sunburned
 
 	//PROCS
 
 	//SPELLS
-	GameDB_Spell_Fireball := &GameDB_Spell{
+	GameDB_Spell_Fireball := &GameDB.Spell{
 		Id:                 1,
 		Name:               "Fireball",
 		Description:        "Fireball",
@@ -150,7 +153,7 @@ func init_db() *GameDB {
 		EffectID:           0,
 		IconID:             0,
 		Speed:              60,
-		Application_Type:   GameDB_Spell_Application_Type_Missile,
+		Application_Type:   GameDB.Spell_Application_Type_Missile,
 		BaseCost:           15,
 		CostPerSec:         0,
 		CostPercentage:     0,
@@ -160,13 +163,13 @@ func init_db() *GameDB {
 		FacingFront:        true,
 		TargetAuraRequired: 0,
 		CasterAuraRequired: 0,
-		Target_Type:        GameDB_Spell_Target_Type_Enemy,
-		InterruptedBy:      GameDB_Interrupt_Type_OnMovement,
-		ApplyEffect:        []*GameDB_Effect{GameDB.Effects[1]},
-		ApplyProc:          []*GameDB_Proc{},
+		Target_Type:        GameDB.Spell_Target_Type_Enemy,
+		InterruptedBy:      GameDB.Interrupt_Type_OnMovement,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[1]},
+		ApplyProc:          []*GameDB.Proc{},
 	}
-	GameDB.Spells[GameDB_Spell_Fireball.Id] = GameDB_Spell_Fireball
-	GameDB_Spell_Frostbolt := &GameDB_Spell{
+	GameDatabase.Spells[GameDB_Spell_Fireball.Id] = GameDB_Spell_Fireball
+	GameDB_Spell_Frostbolt := &GameDB.Spell{
 		Id:                 2,
 		Name:               "Frostbolt",
 		Description:        "Frostbolt",
@@ -180,7 +183,7 @@ func init_db() *GameDB {
 		EffectID:           0,
 		IconID:             0,
 		Speed:              50,
-		Application_Type:   GameDB_Spell_Application_Type_Missile,
+		Application_Type:   GameDB.Spell_Application_Type_Missile,
 		BaseCost:           10,
 		CostPerSec:         0,
 		CostPercentage:     0,
@@ -190,13 +193,13 @@ func init_db() *GameDB {
 		FacingFront:        true,
 		TargetAuraRequired: 0,
 		CasterAuraRequired: 0,
-		Target_Type:        GameDB_Spell_Target_Type_Enemy,
-		InterruptedBy:      GameDB_Interrupt_Type_OnMovement,
-		ApplyEffect:        []*GameDB_Effect{GameDB.Effects[2], GameDB.Effects[3]},
-		ApplyProc:          []*GameDB_Proc{},
+		Target_Type:        GameDB.Spell_Target_Type_Enemy,
+		InterruptedBy:      GameDB.Interrupt_Type_OnMovement,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[2], GameDatabase.Effects[3]},
+		ApplyProc:          []*GameDB.Proc{},
 	}
-	GameDB.Spells[GameDB_Spell_Frostbolt.Id] = GameDB_Spell_Frostbolt
-	GameDB_Spell_Sunburn := &GameDB_Spell{
+	GameDatabase.Spells[GameDB_Spell_Frostbolt.Id] = GameDB_Spell_Frostbolt
+	GameDB_Spell_Sunburn := &GameDB.Spell{
 		Id:                 3,
 		Name:               "Sunburn",
 		Description:        "Sunburn",
@@ -210,7 +213,7 @@ func init_db() *GameDB {
 		EffectID:           0,
 		IconID:             0,
 		Speed:              1000,
-		Application_Type:   GameDB_Spell_Application_Type_Beam,
+		Application_Type:   GameDB.Spell_Application_Type_Beam,
 		BaseCost:           20,
 		CostPerSec:         0,
 		CostPercentage:     0,
@@ -220,20 +223,20 @@ func init_db() *GameDB {
 		FacingFront:        false,
 		TargetAuraRequired: 0,
 		CasterAuraRequired: 0,
-		Target_Type:        GameDB_Spell_Target_Type_Enemy,
-		InterruptedBy:      GameDB_Interrupt_Type_None,
-		ApplyEffect:        []*GameDB_Effect{GameDB.Effects[4], GameDB.Effects[5]},
-		ApplyProc:          []*GameDB_Proc{},
+		Target_Type:        GameDB.Spell_Target_Type_Enemy,
+		InterruptedBy:      GameDB.Interrupt_Type_None,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[4], GameDatabase.Effects[5]},
+		ApplyProc:          []*GameDB.Proc{},
 	}
-	GameDB.Spells[GameDB_Spell_Sunburn.Id] = GameDB_Spell_Sunburn
+	GameDatabase.Spells[GameDB_Spell_Sunburn.Id] = GameDB_Spell_Sunburn
 
 	//CLASSES
-	GameDB_Class_Mage := &GameDB_Class{
+	GameDB_Class_Mage := &GameDB.Class{
 		Name:                    "Mage",
 		Description:             "Mage",
-		Spells:                  []*GameDB_Spell{GameDB.Spells[1], GameDB.Spells[2], GameDB.Spells[3]},
-		Items:                   []*GameDB_Item{GameDB.Items[3]},
-		Procs:                   []*GameDB_Proc{},
+		Spells:                  []*GameDB.Spell{GameDatabase.Spells[1], GameDatabase.Spells[2], GameDatabase.Spells[3]},
+		Items:                   []*GameDB.Item{GameDatabase.Items[3]},
+		Procs:                   []*GameDB.Proc{},
 		BaseStamina:             10,
 		GainStamina:             1,
 		FactorHPRegen:           1,
@@ -258,39 +261,9 @@ func init_db() *GameDB {
 		FactorSpellCriticalHits: 1,
 		MovementSpeed:           18,
 	}
-	GameDB.Classes[GameDB_Class_Mage.Name] = GameDB_Class_Mage
-	GameDB_Class_Ogre := &GameDB_Class{
-		Name:                    "Ogre",
-		Description:             "Simple Meele Mob",
-		Spells:                  []*GameDB_Spell{},
-		Items:                   []*GameDB_Item{GameDB.Items[2]},
-		Procs:                   []*GameDB_Proc{},
-		BaseStamina:             20,
-		GainStamina:             2,
-		FactorHPRegen:           2,
-		FactorArmor:             3,
-		FactorSpellResist:       5,
-		FactorBlock:             5,
-		BaseStrength:            30,
-		GainStrength:            3,
-		FactorStrengthAP:        3,
-		FactorParry:             3,
-		BaseAgility:             10,
-		GainAgility:             1,
-		FactorAgilityAP:         1,
-		FactorMeeleAttackSpeed:  1,
-		FactorMeeleCriticalHits: 1,
-		FactorDodge:             1,
-		BaseIntellect:           1,
-		GainIntellect:           0.01,
-		FactorManaRegen:         1,
-		FactorSpellAP:           1,
-		FactorSpellAttackSpeed:  1,
-		FactorSpellCriticalHits: 1,
-		MovementSpeed:           20,
-	}
-	GameDB.Classes[GameDB_Class_Ogre.Name] = GameDB_Class_Ogre
-	return GameDB
+	GameDatabase.Classes[GameDB_Class_Mage.Name] = GameDB_Class_Mage
+
+	return GameDatabase
 }
 
 func map_init() *Map {

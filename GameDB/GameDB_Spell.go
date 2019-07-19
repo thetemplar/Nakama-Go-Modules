@@ -1,6 +1,6 @@
-package main
+package GameDB
 
-type GameDB_Spell struct {
+type Spell struct {
 	Id					int64
 	Name 				string
 	Description 		string
@@ -15,7 +15,7 @@ type GameDB_Spell struct {
 	EffectID			int32
 	IconID		 		int64
 	Speed				float32
-	Application_Type    GameDB_Spell_Application_Type
+	Application_Type    Spell_Application_Type
 
 	BaseCost			int32
 	CostPerSec			int32
@@ -29,44 +29,44 @@ type GameDB_Spell struct {
 	TargetAuraRequired 	int64
 	CasterAuraRequired 	int64
 	
-	Target_Type			GameDB_Spell_Target_Type
+	Target_Type			Spell_Target_Type
 	
-	InterruptedBy		GameDB_Interrupt_Type
+	InterruptedBy		Interrupt_Type
 
-	ApplyEffect			[]*GameDB_Effect
-	ApplyProc			[]*GameDB_Proc
+	ApplyEffect			[]*Effect
+	ApplyProc			[]*Proc
 }
 
-type GameDB_Spell_Application_Type int
+type Spell_Application_Type int
 const (
-	GameDB_Spell_Application_Type_WeaponSwing = 0
-	GameDB_Spell_Application_Type_Instant = 1
-	GameDB_Spell_Application_Type_Missile = 2
-	GameDB_Spell_Application_Type_Beam = 3
-	GameDB_Spell_Application_Type_AoE = 4
-	GameDB_Spell_Application_Type_Cone = 5
-	GameDB_Spell_Application_Type_Summon = 6
+	Spell_Application_Type_WeaponSwing = 0
+	Spell_Application_Type_Instant = 1
+	Spell_Application_Type_Missile = 2
+	Spell_Application_Type_Beam = 3
+	Spell_Application_Type_AoE = 4
+	Spell_Application_Type_Cone = 5
+	Spell_Application_Type_Summon = 6
 )
 
-type GameDB_Spell_Target_Type int8
+type Spell_Target_Type int8
 const (
-	GameDB_Spell_Target_Type_None = 0
-	GameDB_Spell_Target_Type_Unit = 1
-	GameDB_Spell_Target_Type_Enemy = 2
-	GameDB_Spell_Target_Type_Ally = 3
-	GameDB_Spell_Target_Type_Dead = 4
-	GameDB_Spell_Target_Type_DeadEnemy = 5
-	GameDB_Spell_Target_Type_DeadAlly = 6
-	GameDB_Spell_Target_Type_AoE = 7
+	Spell_Target_Type_None = 0
+	Spell_Target_Type_Unit = 1
+	Spell_Target_Type_Enemy = 2
+	Spell_Target_Type_Ally = 3
+	Spell_Target_Type_Dead = 4
+	Spell_Target_Type_DeadEnemy = 5
+	Spell_Target_Type_DeadAlly = 6
+	Spell_Target_Type_AoE = 7
 )
 
-type GameDB_Interrupt_Type int8
+type Interrupt_Type int8
 const (
-	GameDB_Interrupt_Type_None = 0
-	GameDB_Interrupt_Type_OnMovement = 1
-	GameDB_Interrupt_Type_OnKnockback = 2
-	GameDB_Interrupt_Type_OnInterruptCast = 3
-	GameDB_Interrupt_Type_OnDamageTaken = 4
-	GameDB_Interrupt_Type_OnAttackingMeele = 5
-	GameDB_Interrupt_Type_OnAttackingSpell = 6
+	Interrupt_Type_None = 0
+	Interrupt_Type_OnMovement = 1
+	Interrupt_Type_OnKnockback = 2
+	Interrupt_Type_OnInterruptCast = 3
+	Interrupt_Type_OnDamageTaken = 4
+	Interrupt_Type_OnAttackingMeele = 5
+	Interrupt_Type_OnAttackingSpell = 6
 )

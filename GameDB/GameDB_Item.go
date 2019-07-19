@@ -1,12 +1,12 @@
-package main
+package GameDB
 
-type GameDB_Item struct {
+type Item struct {
 	Id					int64
 	Name 				string
 	Description 		string
 
-	Type				GameDB_Item_Type
-	Slot				GameDB_Item_Slot
+	Type				Item_Type
+	Slot				Item_Slot
 
 	DamageMin			int32
 	DamageMax			int32
@@ -16,20 +16,20 @@ type GameDB_Item struct {
 	BlockValue			int32
 }
 
-type GameDB_Item_Type int
+type Item_Type int
 const (
-	GameDB_Item_Type_Weapon_OneHand = 0;
-	GameDB_Item_Type_Weapon_MainHand = 1;
-	GameDB_Item_Type_Weapon_OffHand = 2;
-	GameDB_Item_Type_Weapon_TwoHand = 3;
-	GameDB_Item_Type_Weapon_Shield = 4;
-	GameDB_Item_Type_Weapon_Bow = 5;
-	GameDB_Item_Type_Weapon_Wand = 6;
+	Item_Type_Weapon_OneHand = 0;
+	Item_Type_Weapon_MainHand = 1;
+	Item_Type_Weapon_OffHand = 2;
+	Item_Type_Weapon_TwoHand = 3;
+	Item_Type_Weapon_Shield = 4;
+	Item_Type_Weapon_Bow = 5;
+	Item_Type_Weapon_Wand = 6;
 )
 
-type GameDB_Item_Slot int
+type Item_Slot int
 const (
-	GameDB_Item_Slot_Weapon_MainHand = 0;
-	GameDB_Item_Slot_Weapon_OffHand = 1;
-	GameDB_Item_Slot_Weapon_BothHands = 2;
+	Item_Slot_Weapon_MainHand = 0;
+	Item_Slot_Weapon_OffHand = 1;
+	Item_Slot_Weapon_BothHands = 2;
 )
