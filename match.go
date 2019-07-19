@@ -79,11 +79,10 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		Auras: make([]*PublicMatchState_Aura, 0),
 		Character: &Character {
-			Classname: "Mage",
-			EquippedItemMainhandId: 1,
-			EquippedItemOffhandId: 2,
+			Classname: "Ogre",
+			EquippedItemMainhandId: 2,
 			CurrentHealth: 100,
-			CurrentPower: 10,
+			CurrentPower: 1,
 		},
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
@@ -95,6 +94,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		StatModifiers: PlayerStats {},
 	}
+	enemyInternal.Act = Act_Ogre
 	state.InternalPlayer[enemyInternal.Id] = enemyInternal
 	state.NpcCounter++
 
@@ -409,10 +409,16 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		}
 		projectile.Run(state.(*MatchState), projectile, tickrate)	
 	}
+	for _, player := range state.(*MatchState).InternalPlayer {
+		currentPlayerPublic := player.getPublicPlayer(state.(*MatchState))
+		if player.Presence != nil || !currentPlayerPublic.IsEngaged || currentPlayerPublic.Character.CurrentHealth <= 0 {
+			continue
+		}
+		player.Act(state.(*MatchState), player)
+	}
 
 	//regen
 	for _, player := range state.(*MatchState).InternalPlayer {
-		fmt.Printf("regen > %v\n", player.Id)
 		if(player.LastRegenTick + int64(tickrate) < tick) {
 			player.LastRegenTick = tick
 			regenPercHP := float64((tick - player.LastHealthDrainTick) / 10) //secs since last dmg

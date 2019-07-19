@@ -117,6 +117,9 @@ message PublicMatchState {
 
 		//auras
 		repeated Aura auras = 11;
+
+		//combat
+		bool is_engaged = 12;
 	}
 
 	message Aura {

@@ -38,8 +38,11 @@ type InternalPlayer struct {
 	LastHealthDrainTick			int64
 	LastPowerDrainTick			int64
 
-	
+	//fights
+	Act Act
 }
+
+type Act func(state *MatchState, p *InternalPlayer)
 
 type PlayerStats struct{
 	MovementSpeed				float32

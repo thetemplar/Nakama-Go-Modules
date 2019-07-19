@@ -259,7 +259,37 @@ func init_db() *GameDB {
 		MovementSpeed:           18,
 	}
 	GameDB.Classes[GameDB_Class_Mage.Name] = GameDB_Class_Mage
-
+	GameDB_Class_Ogre := &GameDB_Class{
+		Name:                    "Ogre",
+		Description:             "Simple Meele Mob",
+		Spells:                  []*GameDB_Spell{},
+		Items:                   []*GameDB_Item{GameDB.Items[2]},
+		Procs:                   []*GameDB_Proc{},
+		BaseStamina:             20,
+		GainStamina:             2,
+		FactorHPRegen:           2,
+		FactorArmor:             3,
+		FactorSpellResist:       5,
+		FactorBlock:             5,
+		BaseStrength:            30,
+		GainStrength:            3,
+		FactorStrengthAP:        3,
+		FactorParry:             3,
+		BaseAgility:             10,
+		GainAgility:             1,
+		FactorAgilityAP:         1,
+		FactorMeeleAttackSpeed:  1,
+		FactorMeeleCriticalHits: 1,
+		FactorDodge:             1,
+		BaseIntellect:           1,
+		GainIntellect:           0.01,
+		FactorManaRegen:         1,
+		FactorSpellAP:           1,
+		FactorSpellAttackSpeed:  1,
+		FactorSpellCriticalHits: 1,
+		MovementSpeed:           20,
+	}
+	GameDB.Classes[GameDB_Class_Ogre.Name] = GameDB_Class_Ogre
 	return GameDB
 }
 

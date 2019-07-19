@@ -12,9 +12,13 @@ func (p *PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*I
 }
 
 //regen
-func (p *PublicMatchState_Interactable) Regen(state *MatchState, hpPercent, powerPercent float64) {
+func (p *PublicMatchState_Interactable) Regen(state *MatchState, hpPercent, powerPercent float64) {	
 	thisChar := p.Character
 	thisClass := state.GetClassFromDB(p.Character)
+
+	if thisChar.CurrentHealth <= 0 {
+		return
+	}
 
 	thisChar.CurrentHealth += float32(math.Max(float64(thisClass.getHpRegen(thisChar)) * hpPercent, 0));
 	thisChar.CurrentPower += float32(math.Max(float64(thisClass.getManaRegen(thisChar)) * powerPercent, 0));
@@ -31,6 +35,10 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	
 	thisChar := p.Character
 	thisClass := state.GetClassFromDB(p.Character)
+	if(!p.IsEngaged || p.Target == "") {
+		p.Target = source.Id
+	}
+	p.IsEngaged = true
 
 	miss := (1 - sourceClass.getMeeleHitChance(sourceChar))
 	dmgInput := float32(0)
@@ -141,6 +149,10 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	
 	thisChar := p.Character
 	thisClass := state.GetClassFromDB(p.Character)
+	if(!p.IsEngaged || p.Target == "") {
+		p.Target = source.Id
+	}
+	p.IsEngaged = true
 
 	dmgInput := randomFloatInt(effect.ValueMin, effect.ValueMax)
 	fmt.Printf("\napplyAbilityDamage %v from effect %v to unit %v\n", dmgInput, effect, p.Id)
