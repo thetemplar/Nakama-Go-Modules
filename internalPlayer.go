@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/heroiclabs/nakama/runtime"
+	"github.com/heroiclabs/nakama-common/runtime"
 )
 
 type InternalPlayer struct {

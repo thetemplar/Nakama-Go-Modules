@@ -6,9 +6,8 @@ import (
 	"context"
     "encoding/json"
 	"database/sql"
-    "github.com/heroiclabs/nakama/api"
-	"github.com/heroiclabs/nakama/runtime"
-	"github.com/gofrs/uuid"
+    "github.com/heroiclabs/nakama-common/api"
+    "github.com/heroiclabs/nakama-common/runtime"
 )
 
 func InitModule(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, initializer runtime.Initializer) error {
@@ -137,7 +136,8 @@ func GetPlayers(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 			return "", err
 		}
 
-		playerID := uuid.FromStringOrNil(id)
+		playerID := id
+//		playerID := uuid.FromStringOrNil(id)
 /*
 		online := false
 		if tracker != nil {
@@ -145,7 +145,7 @@ func GetPlayers(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runti
 		}
 */
 		user := &api.User{
-			Id:          playerID.String(),
+			Id:          playerID,
 			Username:    username.String,
 			DisplayName: displayName.String,
 			AvatarUrl:   avatarURL.String,

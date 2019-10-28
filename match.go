@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 	"database/sql"
-	"github.com/heroiclabs/nakama/runtime"
+	"github.com/heroiclabs/nakama-common/runtime"
 	"github.com/golang/protobuf/proto"
 	"fmt"
 	"strconv"
@@ -391,7 +391,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		}
 		//currentPlayerPublic := state.(*MatchState).PublicMatchState.Interactable[player.Id];
 		//fmt.Printf("%v @ %v | %v  GCD: %v -- hp: %v/%v mana: %v/%v -- bytes: %v kB/s\n", player.Id, currentPlayerPublic.Position.X, currentPlayerPublic.Position.Y, currentPlayerPublic.GlobalCooldown, currentPlayerPublic.Character.CurrentHealth, state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMaxHp(currentPlayerPublic.Character), currentPlayerPublic.Character.CurrentPower, state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).getMaxMana(currentPlayerPublic.Character), float64(len(out) * tickrate) / 1000.0)
-		dispatcher.BroadcastMessage(1, out, []runtime.Presence { player.Presence }, nil)
+		dispatcher.BroadcastMessage(1, out, []runtime.Presence { player.Presence }, nil, true)
 	}	
 	
 	//save for history
