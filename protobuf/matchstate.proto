@@ -153,35 +153,55 @@ message PublicMatchState {
 //Send by client
 
 //opId = 0
-message Client_Character {
-	int64 last_confirmed_server_tick = 1;
-	int64 client_tick = 2;
-	float x_axis = 3;
-	float y_axis = 4;
-	float rotation = 5;
-	string target = 6;
-}
-
-//opId = 1
-message Client_Cast {
-	int64 spell_id = 1;
-}
-
-//opId = 2
-message Client_Autoattack {
-	enum Type {
-		Meele = 0;
-		Range = 1;
-		Wand = 2;
+message Client_Message {
+	int64 client_tick = 1;
+	oneof type {
+		Client_Character character = 2;
+		Client_Cast cast = 3;
+		Client_Autoattack auto_attack = 4;
+		Client_CancelAttack cancel_attack = 5;
+		Client_Movement move = 6;
+		Client_SelectCharacter select_char = 7;
 	}
-	Type attacktype = 1;
-}
 
-//opId = 3
-message Client_CancelAttack {
-}
+	message Client_Character {
+		int64 last_confirmed_server_tick = 2;
+		string target = 3;
+	}
 
-//opId = 100
-message Client_SelectCharacter {
-	string classname = 1;
+	//opId = 1
+	message Client_Cast {
+		int64 client_tick = 1;
+		int64 spell_id = 2;
+	}
+
+	//opId = 2
+	message Client_Autoattack {
+		int64 client_tick = 2;
+		enum Type {
+			Meele = 0;
+			Range = 1;
+			Wand = 2;
+		}
+		Type attacktype = 3;
+	}
+
+	//opId = 3
+	message Client_CancelAttack {
+	}
+
+	//opId = 4
+	message Client_Movement{
+		int64 client_tick = 1;
+		bool absolute_coordinates = 2;
+		float x_axis = 3;
+		float y_axis = 4;
+		float rotation = 5;
+	}
+
+	//opId = 100
+	message Client_SelectCharacter {
+		string classname = 1;
+	}
+
 }
