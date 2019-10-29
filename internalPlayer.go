@@ -9,7 +9,7 @@ type InternalPlayer struct {
 	Id                      	string
 
 	//messages from client
-	LastMessage             	runtime.MatchData
+	LastMovement             	*Client_Message_Client_Movement
 	LastMessageServerTick   	int64
 	LastMessageClientTick   	int64
 	MissingCount				int

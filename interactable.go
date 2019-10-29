@@ -292,7 +292,7 @@ func (p *PublicMatchState_Interactable) containsEffectId(id int64, creator strin
 }
 
 //autoattack
-func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attacktype Client_Autoattack_Type) {
+func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attacktype Client_Message_Client_Autoattack_Type) {
 	thisChar := p.Character
 	thisClass := state.GetClassFromDB(p.Character)
 

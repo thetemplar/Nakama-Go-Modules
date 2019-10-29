@@ -229,74 +229,60 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		//entry.UserID, entry.SessionId, entry.Username, entry.Node, entry.OpCode, entry.Data, entry.ReceiveTime
 		currentPlayerInternal := state.(*MatchState).InternalPlayer[message.GetUserId()];
 		currentPlayerPublic   := state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
-		if message.GetOpCode() == 0 {
+
+		msg := &Client_Message{}
+		if err := proto.Unmarshal(message.GetData(), msg); err != nil {
+			logger.Printf("Failed to parse incoming SendPackage Client_Message:", err)
+		}
+
+		switch msg.Type.(type) {
+		case *Client_Message_Character:
 			/*if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
 				return
 			}*/
-			currentPlayerInternal.LastMessage = message
 			currentPlayerInternal.LastMessageServerTick = tick
 			currentPlayerInternal.MissingCount = 0
-
-			msg := &Client_Character{}
-			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
-				logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
-			}
 			
-			if currentPlayerPublic.Target != msg.Target {
+			if currentPlayerPublic.Target != msg.GetCharacter().Target {
 				currentPlayerInternal.stopAutoattackTimer();
 			}
-			currentPlayerPublic.Target = msg.Target;
-
-			currentPlayerPublic.PerformMovement(state.(*MatchState), msg.XAxis, msg.YAxis, msg.Rotation)
-			
-			currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
-		} else if message.GetOpCode() == 1 {
-			msg := &Client_Cast{}
-			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
-				logger.Printf("Failed to parse incoming SendPackage Client_Cast:", err)
-			}
+			currentPlayerPublic.Target = msg.GetCharacter().Target;
+		case *Client_Message_Cast:
 			//is the spell in his spellbook?
 			for _, spell := range state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Spells {
-				if (spell.Id == msg.SpellId) {
-					currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[msg.SpellId])
+				if (spell.Id == msg.GetCast().SpellId) {
+					currentPlayerPublic.startCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[msg.GetCast().SpellId])
 					break
 				}
 			}
-		} else if message.GetOpCode() == 2 {
-			msg := &Client_Autoattack{}
-			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
-				logger.Printf("Failed to parse incoming SendPackage Client_Autoattack:", err)
-			}
+		case *Client_Message_AutoAttack:
 			if !currentPlayerInternal.Autoattacking && currentPlayerPublic.Target != "" {
 				fmt.Printf("startAutoattack %v > %v\n", currentPlayerPublic.Id, currentPlayerPublic.Target)
-				currentPlayerPublic.startAutoattack(state.(*MatchState), msg.Attacktype)
+				currentPlayerPublic.startAutoattack(state.(*MatchState), msg.GetAutoAttack().Attacktype)
 			}
-		} else if message.GetOpCode() == 3 {
+		case *Client_Message_CancelAttack:
 			currentPlayerInternal.stopAutoattackTimer();
 			currentPlayerInternal.stopCastTimer();
-		} else if message.GetOpCode() == 100 {
-			msg := &Client_SelectCharacter{}
-			if err := proto.Unmarshal(message.GetData(), msg); err != nil {
-				logger.Printf("Failed to parse incoming SendPackage Client_SelectCharacter:", err)
-			}
-			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.Classname)
+		case *Client_Message_Move:
+			currentPlayerInternal.LastMovement = msg.GetMove()
+			currentPlayerInternal.stopAutoattackTimer();
+			currentPlayerInternal.stopCastTimer();
+			currentPlayerPublic.PerformMovement(state.(*MatchState), msg.GetMove().XAxis, msg.GetMove().YAxis, msg.GetMove().Rotation)
+		case *Client_Message_SelectChar:
+			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname)
 		}  
-	}
+		currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
+	}			
 	
 	//did a player not send an package? then re-do his last
 	for _, player := range state.(*MatchState).InternalPlayer {		
 		if player.LastMessageServerTick != tick {
 			player.MissingCount++
-			if player.MissingCount > 1 && player.LastMessage != nil {
+			if player.MissingCount > 1 && player.LastMovement != nil {
 				player.MessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
-	
-				msg := &Client_Character{}
-				if err := proto.Unmarshal(player.LastMessage.GetData(), msg); err != nil {
-					logger.Printf("Failed to parse incoming SendPackage Client_Character:", err)
-				}
-	
-				player.getPublicPlayer(state.(*MatchState)).PerformMovement(state.(*MatchState), msg.XAxis, msg.YAxis, msg.Rotation)
+		
+				player.getPublicPlayer(state.(*MatchState)).PerformMovement(state.(*MatchState), player.LastMovement.XAxis, player.LastMovement.YAxis, player.LastMovement.Rotation)
 			}
 		}
 	}
