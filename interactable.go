@@ -24,11 +24,20 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		yAxis /= length
 	}
 
+	mod := float32(1);
+	for range p.Auras {
+		//a.EffectId
+		mod = 0 //this is incomplete -> check here for slow auras
+		
+    }
+	xAxis *= mod
+	yAxis *= mod
+
 	currentPlayerInternal := p.getInternalPlayer(state)	
 
 	add := PublicMatchState_Vector2Df {
-		X: xAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
-		Y: yAxis / float32(currentPlayerInternal.MessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
+		X: xAxis / float32(currentPlayerInternal.MoveMessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
+		Y: yAxis / float32(currentPlayerInternal.MoveMessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
 	}
 	
 	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
@@ -71,6 +80,8 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		if !found {
 			p.Position.X -= rotatedAdd.X;
 			p.Position.Y -= rotatedAdd.Y;
+
+			//better: find edge between this triangle and destination point, then move along the edge
 		} 
 	}	
 }
@@ -451,7 +462,6 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 }
 
 func (p *PublicMatchState_Interactable) cancelCast(state *MatchState) {	
-
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
 		SourceId: p.Id,

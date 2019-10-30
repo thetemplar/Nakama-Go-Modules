@@ -13,7 +13,7 @@ type InternalPlayer struct {
 	LastMessageServerTick   	int64
 	LastMessageClientTick   	int64
 	MissingCount				int
-	MessageCountThisFrame   	int
+	MoveMessageCountThisFrame  	int
 
 	//movement	
 	TriangleIndex 				int64

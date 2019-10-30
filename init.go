@@ -97,7 +97,7 @@ func init_db() *GameDB.Database {
 		Mechanic:    GameDB.Spell_Mechanic_Slowed,
 		Type: &GameDB.Effect_Apply_Aura_Mod{
 			Stat:  GameDB.Stat_Speed,
-			Value: 10,
+			Value: 50,
 		},
 		ValueMin: 0,
 		ValueMax: 0,
@@ -262,6 +262,38 @@ func init_db() *GameDB.Database {
 		MovementSpeed:           18,
 	}
 	GameDatabase.Classes[GameDB_Class_Mage.Name] = GameDB_Class_Mage
+
+	GameDB_Class_Ogre := &GameDB.Class{
+		Name:                    "Ogre",
+		Description:             "Ogre",
+		Spells:                  []*GameDB.Spell{},
+		Items:                   []*GameDB.Item{GameDatabase.Items[2]},
+		Procs:                   []*GameDB.Proc{},
+		BaseStamina:             20,
+		GainStamina:             2,
+		FactorHPRegen:           1,
+		FactorArmor:             2,
+		FactorSpellResist:       3,
+		FactorBlock:             1,
+		BaseStrength:            45,
+		GainStrength:            2,
+		FactorStrengthAP:        4,
+		FactorParry:             2,
+		BaseAgility:             7,
+		GainAgility:             5,
+		FactorAgilityAP:         1,
+		FactorMeeleAttackSpeed:  3,
+		FactorMeeleCriticalHits: 3,
+		FactorDodge:             2,
+		BaseIntellect:           2,
+		GainIntellect:           2,
+		FactorManaRegen:         1,
+		FactorSpellAP:           1,
+		FactorSpellAttackSpeed:  1,
+		FactorSpellCriticalHits: 1,
+		MovementSpeed:           12,
+	}
+	GameDatabase.Classes[GameDB_Class_Ogre.Name] = GameDB_Class_Ogre
 
 	return GameDatabase
 }

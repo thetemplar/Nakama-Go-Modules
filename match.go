@@ -215,8 +215,8 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil {
 			continue
 		}
-		if(message.GetOpCode() == 0) {
-			state.(*MatchState).InternalPlayer[message.GetUserId()].MessageCountThisFrame++
+		if(message.GetOpCode() == 2) {
+			state.(*MatchState).InternalPlayer[message.GetUserId()].MoveMessageCountThisFrame++
 		}
 	}
 
@@ -235,7 +235,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			logger.Printf("Failed to parse incoming SendPackage Client_Message:", err)
 		}
 
-		switch msg.Type.(type) {
+		switch t := msg.Type.(type) {
 		case *Client_Message_Character:
 			/*if state.(*MatchState).InternalPlayer[message.GetUserId()] == nil || state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()] == nil {
 				return
@@ -264,12 +264,19 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			currentPlayerInternal.stopAutoattackTimer();
 			currentPlayerInternal.stopCastTimer();
 		case *Client_Message_Move:
+			if(msg.GetMove().AbsoluteCoordinates) {
+				continue;
+			}
 			currentPlayerInternal.LastMovement = msg.GetMove()
 			currentPlayerInternal.stopAutoattackTimer();
 			currentPlayerInternal.stopCastTimer();
 			currentPlayerPublic.PerformMovement(state.(*MatchState), msg.GetMove().XAxis, msg.GetMove().YAxis, msg.GetMove().Rotation)
 		case *Client_Message_SelectChar:
 			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname)
+			currentPlayerInternal = state.(*MatchState).InternalPlayer[message.GetUserId()];
+			currentPlayerPublic   = state.(*MatchState).PublicMatchState.Interactable[message.GetUserId()];
+		default:
+			fmt.Printf("Unknown Client_Message_Character %v\n", t);
 		}  
 		currentPlayerPublic.LastProcessedClientTick = msg.ClientTick
 	}			
@@ -279,7 +286,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		if player.LastMessageServerTick != tick {
 			player.MissingCount++
 			if player.MissingCount > 1 && player.LastMovement != nil {
-				player.MessageCountThisFrame = 1
+				player.MoveMessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
 		
 				player.getPublicPlayer(state.(*MatchState)).PerformMovement(state.(*MatchState), player.LastMovement.XAxis, player.LastMovement.YAxis, player.LastMovement.Rotation)
@@ -368,7 +375,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		if player.Presence == nil {
 			continue
 		}
-		player.MessageCountThisFrame = 0
+		player.MoveMessageCountThisFrame = 0
 
 
 		out, err := proto.Marshal(&state.(*MatchState).PublicMatchState)
