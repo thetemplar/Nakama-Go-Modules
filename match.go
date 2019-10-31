@@ -82,7 +82,6 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Auras: make([]*PublicMatchState_Aura, 0),
 		Character: &Character {
 			Classname: "Ogre",
-			EquippedItemMainhandId: 2,
 			CurrentHealth: 100,
 			CurrentPower: 1,
 		},
@@ -91,9 +90,6 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 	enemyInternal := &InternalPlayer{
 		Id: "npc_" + strconv.FormatInt(state.NpcCounter, 16),
 		Presence: nil,
-		BasePlayerStats: PlayerStats {
-			MovementSpeed: 20.0,
-		},
 		StatModifiers: PlayerStats {},
 	}
 	enemyInternal.Act = Act_Ogre
@@ -127,8 +123,6 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 		},
 		Character: &Character {
 			Classname: classname,
-			EquippedItemMainhandId: 1,
-			EquippedItemOffhandId: 2,
 			CurrentHealth: 100,
 			CurrentPower: 100,
 		},
@@ -136,14 +130,11 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 	
 	state.InternalPlayer[userId] = &InternalPlayer{
 		Id: userId,
-		Presence: *state.PresenceList[userId],
-		BasePlayerStats: PlayerStats {
-			MovementSpeed: 20.0,
-		},			
+		Presence: *state.PresenceList[userId],	
 		TriangleIndex: -1,
 		StatModifiers: PlayerStats {},
 	}
-
+	state.PublicMatchState.Interactable[userId].recalcStats(state)
 	fmt.Printf("new character %v spawn @ %v\n", userId, state.PublicMatchState.Interactable[userId].Position)
 }
 
@@ -196,14 +187,14 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemMainhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
+			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Mainhand.AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
 		}
 		//finish swing offhand
 		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0{
 			currentPlayerPublic.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
 			
 			//queue next swing!
-			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GameDB.Items[currentPlayerPublic.Character.EquippedItemOffhandId].AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
+			player.AutoattackOffhandTickEnd = int64(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character).Mainhand.AttackSpeed * currentPlayerPublic.Character.getMeeleAttackSpeed(state.(*MatchState).GetClassFromDB(currentPlayerPublic.Character)) * float32(tickrate)) + tick
 		}
 			
 		//substract GCD

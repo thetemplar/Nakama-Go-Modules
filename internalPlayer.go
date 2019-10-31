@@ -30,7 +30,6 @@ type InternalPlayer struct {
 	AutoattackTargeted			string
 
 	//playerstats
-	BasePlayerStats				PlayerStats
 	StatModifiers				PlayerStats
 
 	//regen
@@ -45,7 +44,7 @@ type InternalPlayer struct {
 type Act func(state *MatchState, p *InternalPlayer)
 
 type PlayerStats struct{
-	MovementSpeed				float32
+	MovementSpeedModifier		float32
 }
 
 func (p *InternalPlayer) getPublicPlayer(state *MatchState) (*PublicMatchState_Interactable) {

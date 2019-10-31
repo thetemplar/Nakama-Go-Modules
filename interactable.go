@@ -14,6 +14,7 @@ func (p *PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*I
 
 //movement
 func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis, yAxis, rotation float32) {
+	p.Rotation = rotation;
 	//clamb [-1..1]
 	length := float32(math.Sqrt(math.Pow(float64(xAxis), 2) + math.Pow(float64(yAxis), 2)))
 	if length == 0 {
@@ -23,9 +24,9 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		xAxis /= length
 		yAxis /= length
 	}
-			
-	xAxis *= p.getInternalPlayer(state).StatModifiers.MovementSpeed
-	yAxis *= p.getInternalPlayer(state).StatModifiers.MovementSpeed
+	mod := p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier
+	xAxis *= mod
+	yAxis *= mod
 
 	currentPlayerInternal := p.getInternalPlayer(state)	
 
@@ -34,11 +35,12 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		moveMsgCount = 1
 	}
 
-
 	add := PublicMatchState_Vector2Df {
-		X: xAxis / float32(moveMsgCount) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
-		Y: yAxis / float32(moveMsgCount) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
+		X: xAxis / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
+		Y: yAxis / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
 	}
+	
+	fmt.Printf("add %v %v > %v %v\n", xAxis, yAxis, add.X, add.Y)
 	
 	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
 		return
@@ -121,24 +123,28 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 
 	miss := (1 - sourceChar.getMeeleHitChance(sourceClass))
 	dmgInput := float32(0)
-	if slot == GameDB.Item_Slot_Weapon_MainHand {
-		weapon := sourceChar.EquippedItemMainhandId
-		dmgInput = randomFloatInt(state.GameDB.Items[weapon].DamageMin, state.GameDB.Items[weapon].DamageMax)
-		fmt.Printf("\napplyAutoattackDamage (%v) %v to unit %v\n", slot, dmgInput, p.Id)
-		speed := state.GameDB.Items[weapon].AttackSpeed * sourceChar.getMeeleAttackSpeed(sourceClass)
-		dmgInput += sourceChar.getMeeleAttackPower(sourceClass) / (1 / speed)
-		fmt.Printf("\nadded AP to-> %v\n", dmgInput)
+	
+	var item *GameDB.Item
+	if (slot == GameDB.Item_Slot_Weapon_MainHand || slot == GameDB.Item_Slot_Weapon_BothHands) {
+		item = thisClass.Mainhand
+		if (item == nil) {
+			fmt.Printf("\nERROR NO WEAPON IN SLOT Item_Slot_Weapon_MainHand/Item_Slot_Weapon_BothHands\n")
+			return
+		}
+	} else if (slot == GameDB.Item_Slot_Weapon_OffHand) {
+		item = thisClass.Offhand
+		if (item == nil) {
+			fmt.Printf("\nERROR NO WEAPON IN SLOT Item_Slot_Weapon_OffHand\n")
+			return
+		}
 	}
+	dmgInput = randomFloatInt(item.DamageMin, item.DamageMax)
+	fmt.Printf("\napplyAutoattackDamage (%v) %v+%v to unit %v\n", slot, dmgInput, sourceChar.getMeeleAttackPower(sourceClass), p.Id)
+	dmgInput += sourceChar.getMeeleAttackPower(sourceClass)
+
 	if slot == GameDB.Item_Slot_Weapon_OffHand {
-		weapon := sourceChar.EquippedItemOffhandId
-		dmgInput = randomFloatInt(state.GameDB.Items[weapon].DamageMin, state.GameDB.Items[weapon].DamageMax)
-		fmt.Printf("\napplyAutoattackDamage (%v) %v to unit %v\n", slot, dmgInput, p.Id)
-		speed := state.GameDB.Items[weapon].AttackSpeed * sourceChar.getMeeleAttackSpeed(sourceClass)
-		dmgInput += sourceChar.getMeeleAttackPower(sourceClass) / (1 / speed)
-		fmt.Printf("\nadded AP to-> %v\n", dmgInput)
 		miss *= 2
 	}
-
 	
 	roll := randomPercentage()
 	dodge := thisChar.getDodgeChance(thisClass)
@@ -149,19 +155,19 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 		parry = 0
 	}
 
+
 	fail := PublicMatchState_CombatLogEntry_CombatLogEntry_Missed(-1)
 	if roll <= miss {
-		fmt.Printf("miss (%v/%v) damage to %v: %v\n", roll, miss, p.Id, dmgInput)
 		fail = PublicMatchState_CombatLogEntry_Missed
-	} 
-	if roll <= miss + dodge {
-		fmt.Printf("dodge (%v/%v) damage to %v: %v\n", roll, parry, p.Id, dmgInput)
+	} else if roll <= miss + dodge {
 		fail = PublicMatchState_CombatLogEntry_Dodged
-	} 
-	if roll <= miss + dodge + parry {
-		fmt.Printf("parry (%v/%v) damage to %v: %v\n", roll, parry, p.Id, dmgInput)
+	} else if roll <= miss + dodge + parry {
 		fail = PublicMatchState_CombatLogEntry_Parried
-	} 	
+	}
+	
+	fmt.Printf("rolled: %v - table: [miss: %v | dodge: %v | parry: %v ] - damage to %v: %v - failed: %v\n", roll, miss, miss + dodge, miss + dodge + parry, p.Id, dmgInput, fail)
+		
+
 	if fail > -1 {		
 		clEntry := &PublicMatchState_CombatLogEntry {
 			Timestamp: state.PublicMatchState.Tick,
@@ -172,18 +178,24 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 			Type: &PublicMatchState_CombatLogEntry_MissedType{ fail },
 		}
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+		return;
 	}
 	
+	armor := thisChar.getArmor(thisClass)
+	dmgInput -= armor
 
 	block := thisChar.getBlockPercentage(thisClass)
-	if behind || state.GameDB.Items[sourceChar.EquippedItemOffhandId].Type != GameDB.Item_Type_Weapon_Shield {
+	if behind || (thisClass.Offhand != nil && thisClass.Offhand.Type != GameDB.Item_Type_Weapon_Shield) {
 		block = 0
 	}
-	armor := thisChar.getArmor(thisClass) / (thisChar.getArmor(thisClass) + 40)
-	dmgBlocked := float32(dmgInput) * (1 - (block + armor))
-	dmgInput = dmgInput - dmgBlocked
-	fmt.Printf("physical reduction by block (%v behind:%v) and armor (%v) by %v -> %v\n", block, behind, armor, dmgBlocked, dmgInput)
+	dmgBlocked := dmgInput * block
+	dmgInput -= dmgBlocked
+	fmt.Printf("physical reduction by blockpercentage %v (behind:%v) and armor (%v) by -> %v\n", block, behind, armor, dmgInput)
 
+	if(dmgInput < 0) {
+		dmgInput = 0
+	}
+	
 	roll = randomPercentage()
 	crit := sourceChar.getMeeleCritChance(sourceClass)
 	dmgInputCrit := float32(0)
@@ -327,7 +339,9 @@ func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attac
 	target := state.PublicMatchState.Interactable[targetId]
 	distance := p.Position.distance(target.Position)	
 	
-	if distance > state.GameDB.Items[p.Character.EquippedItemMainhandId].Range {
+	
+	
+	if distance > thisClass.Mainhand.Range {
 		failedMessage = "Out of Range!"
 	}
 
@@ -355,16 +369,16 @@ func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attac
 		return
 	}
 	mhEnd := int64(0)
-	if (p.Character.EquippedItemMainhandId > 0 && state.GameDB.Items[p.Character.EquippedItemMainhandId].AttackSpeed > 0) {
-		mhEnd = int64(state.GameDB.Items[p.Character.EquippedItemMainhandId].AttackSpeed * thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
+	if (thisClass.Mainhand != nil && thisClass.Mainhand.AttackSpeed > 0) {
+		mhEnd = int64(thisClass.Mainhand.AttackSpeed * thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
 		
-		fmt.Printf("swinging mainhand at", mhEnd)
+		fmt.Printf("swinging mainhand at  %v\n", mhEnd)
 	}
 	ohEnd := int64(0)
-	if (p.Character.EquippedItemOffhandId > 0 && state.GameDB.Items[p.Character.EquippedItemOffhandId].AttackSpeed > 0) {
-		ohEnd = int64(state.GameDB.Items[p.Character.EquippedItemOffhandId].AttackSpeed *  thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
+	if (thisClass.Offhand != nil && thisClass.Offhand.AttackSpeed > 0) {
+		ohEnd = int64(thisClass.Offhand.AttackSpeed * thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
 	
-		fmt.Printf("swinging offhand at", ohEnd)
+		fmt.Printf("swinging offhand at  %v\n", ohEnd)
 	}
 	currentPlayerInternal.startAutoattackTimer(mhEnd, ohEnd, targetId)
 }
@@ -372,8 +386,8 @@ func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attac
 func (p *PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB.Item_Slot, targetId string) {
 	target := state.PublicMatchState.Interactable[targetId]
 	distance := p.Position.distance(target.Position)	
-	
-	if distance > state.GameDB.Items[p.Character.EquippedItemMainhandId].Range {
+
+	if distance > state.GetClassFromDB(p.Character).Mainhand.Range {
 		fmt.Printf("startAutoattack failed: Out of Range!\n")
 		clEntry := &PublicMatchState_CombatLogEntry {
 			Timestamp: state.PublicMatchState.Tick,
@@ -410,42 +424,49 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 		failedMessage = "Not enough Mana!"
 	}
 
-	if spell.Target_Type != GameDB.Spell_Target_Type_None && p.Target == "" {
-		failedMessage = "No Target!"
-	}
-
-	targetId := p.Target
-	target := state.PublicMatchState.Interactable[targetId]
-	distance := p.Position.distance(target.Position)		
-	
-	behind := target.Position.isFacedBy(p.Position, p.Rotation)
-	if spell.FacingFront && !behind {
-		failedMessage = "Is not facing target!"
-	}
-
-	if distance > spell.Range {	
-		fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
-		failedMessage = "Out of Range!"
-	}
-
-	if IntersectingBorders(p.Position, target.Position, state.Map) {
-		failedMessage = "Not in Line of Sight!"
-	}
-
-	if failedMessage != "" {
-		clEntry := &PublicMatchState_CombatLogEntry {
-			Timestamp: state.PublicMatchState.Tick,
-			SourceId: p.Id,
-			SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{spell.Id},
-			Source: PublicMatchState_CombatLogEntry_Spell,
-			Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
-				Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
-				FailedMessage: failedMessage,
-			}},
+	targetId := "" 
+	if (spell.Target_Type == GameDB.Spell_Target_Type_Self) {
+		targetId = p.Id
+	} else if (spell.Target_Type == GameDB.Spell_Target_Type_None) {
+		//nothing so far
+	} else {
+		if p.Target == "" {
+			failedMessage = "No Target!"
 		}
-		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
-		return
+		targetId = p.Target
+		target := state.PublicMatchState.Interactable[targetId]
+		distance := p.Position.distance(target.Position)		
+		
+		behind := target.Position.isFacedBy(p.Position, p.Rotation)
+		if spell.FacingFront && !behind {
+			failedMessage = "Is not facing target!"
+		}
+
+		if distance > spell.Range {	
+			fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
+			failedMessage = "Out of Range!"
+		}
+
+		if IntersectingBorders(p.Position, target.Position, state.Map) {
+			failedMessage = "Not in Line of Sight!"
+		}
+
+		if failedMessage != "" {
+			clEntry := &PublicMatchState_CombatLogEntry {
+				Timestamp: state.PublicMatchState.Tick,
+				SourceId: p.Id,
+				SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{spell.Id},
+				Source: PublicMatchState_CombatLogEntry_Spell,
+				Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
+					Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
+					FailedMessage: failedMessage,
+				}},
+			}
+			state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+
+			return
+		}
 	}
 
 	if spell.IgnoresWeaponswing == false {
@@ -526,14 +547,16 @@ func (p *PublicMatchState_Interactable) finishCast(state *MatchState, spell *Gam
 //stats
 func (p *PublicMatchState_Interactable) recalcStats(state *MatchState) {
 	p.getInternalPlayer(state).StatModifiers = PlayerStats {}
+	p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier = 1
 	for _, aura := range p.Auras {
 		effect := state.GameDB.Effects[aura.EffectId]
 		
 		switch effect.Type.(type) {
 		case *GameDB.Effect_Apply_Aura_Mod:
 			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed {
-				p.getInternalPlayer(state).StatModifiers.MovementSpeed *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
+				p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
 			}
 		}
 	}
+	fmt.Printf("move: %v = %v\n", p.Id, p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier)
 }

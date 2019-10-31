@@ -52,12 +52,13 @@ type Spell_Target_Type int8
 const (
 	Spell_Target_Type_None = 0
 	Spell_Target_Type_Unit = 1
-	Spell_Target_Type_Enemy = 2
-	Spell_Target_Type_Ally = 3
-	Spell_Target_Type_Dead = 4
-	Spell_Target_Type_DeadEnemy = 5
-	Spell_Target_Type_DeadAlly = 6
-	Spell_Target_Type_AoE = 7
+	Spell_Target_Type_Self = 2
+	Spell_Target_Type_Enemy = 3
+	Spell_Target_Type_Ally = 4
+	Spell_Target_Type_Dead = 5
+	Spell_Target_Type_DeadEnemy = 6
+	Spell_Target_Type_DeadAlly = 7
+	Spell_Target_Type_AoE = 8
 )
 
 type Interrupt_Type int8

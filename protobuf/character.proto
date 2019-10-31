@@ -9,11 +9,6 @@ option csharp_namespace = "NakamaMinimalGame.Character";
 message Character {
     string classname = 1;
     int32 level = 2;
-    
-    int64 equipped_item_mainhand_id = 4;
-    int64 equipped_item_offhand_id = 5;
-    
     float current_health = 6;
     float current_power = 7;
-    
 }

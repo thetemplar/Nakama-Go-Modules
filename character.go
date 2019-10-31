@@ -37,7 +37,7 @@ func (c *Character)  getManaRegen(dbc *GameDB.Class) float32 {
 
 //meele
 func (c *Character)  getMeeleAttackSpeed(dbc *GameDB.Class) float32 {	
-	return (1/(200/(c.getCurrentAgility(dbc) * dbc.FactorMeeleAttackSpeed))) * 0.25 
+	return 1-(1/(200/(c.getCurrentAgility(dbc) * dbc.FactorMeeleAttackSpeed))) * 0.25 
 }
 
 func (c *Character)  getMeeleAttackPower(dbc *GameDB.Class) float32 {
@@ -53,7 +53,7 @@ func (c *Character)  getMeeleHitChance(dbc *GameDB.Class) float32 {
 
 //spell
 func (c *Character)  getSpellAttackSpeed(dbc *GameDB.Class) float32 {
-	return (1/(200/(c.getCurrentIntellect(dbc) * dbc.FactorSpellAttackSpeed))) * 0.25 
+	return 1-(1/(200/(c.getCurrentIntellect(dbc) * dbc.FactorSpellAttackSpeed))) * 0.25 
 }
 func (c *Character)  getSpellAttackPower(dbc *GameDB.Class) float32 {
 	return c.getCurrentIntellect(dbc) * dbc.FactorSpellAP
@@ -70,13 +70,13 @@ func (c *Character)  getArmor(dbc *GameDB.Class) float32 {
 	return c.getCurrentStamina(dbc) * dbc.FactorArmor
 }
 func (c *Character)  getBlockPercentage(dbc *GameDB.Class) float32 {
-	return c.getCurrentStamina(dbc) * dbc.FactorBlock
+	return (1/(200/(c.getCurrentStamina(dbc) * dbc.FactorBlock))) * 0.75 
 }
 func (c *Character)  getDodgeChance(dbc *GameDB.Class) float32 {
-	return c.getCurrentAgility(dbc) * dbc.FactorDodge
+	return (c.getCurrentAgility(dbc) * dbc.FactorDodge / 100) / 4 /*4=magic number*/
 }
 func (c *Character)  getParryChance(dbc *GameDB.Class) float32 {
-	return c.getCurrentStrength(dbc) * dbc.FactorParry
+	return (c.getCurrentStrength(dbc) * dbc.FactorParry / 100) / 4 /*4=magic number*/
 }
 
 //resistance

@@ -5,6 +5,8 @@ type Class struct {
 	Description 			string
 
 	Spells					[]*Spell
+	Mainhand				*Item
+	Offhand					*Item
 	Items					[]*Item
 	Procs					[]*Proc
 
