@@ -9,7 +9,7 @@ type Database struct {
 	Classes				map[string]*Class
 }
 
-func (g *Database) searchSpellByName(name string) (*Spell) {
+func (g *Database) SearchSpellByName(name string) (*Spell) {
 	for _, spell := range g.Spells { 
 		if spell.Name == name {
 			return spell;
@@ -18,7 +18,7 @@ func (g *Database) searchSpellByName(name string) (*Spell) {
 	return nil
 }
 
-func (g *Database) searchEffectByName(name string) (*Effect) {
+func (g *Database) SearchEffectByName(name string) (*Effect) {
 	for _, effect := range g.Effects { 
 		if effect.Name == name {
 			return effect;
@@ -27,7 +27,7 @@ func (g *Database) searchEffectByName(name string) (*Effect) {
 	return nil
 }
 
-func (g *Database) searchItemByName(name string) (*Item) {
+func (g *Database) SearchItemByName(name string) (*Item) {
 	for _, item := range g.Items { 
 		if item.Name == name {
 			return item;
@@ -36,7 +36,7 @@ func (g *Database) searchItemByName(name string) (*Item) {
 	return nil
 }
 
-func (g *Database) searchProcByName(name string) (*Proc) {
+func (g *Database) SearchProcByName(name string) (*Proc) {
 	for _, proc := range g.Procs { 
 		if proc.Name == name {
 			return proc;

@@ -23,21 +23,21 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		xAxis /= length
 		yAxis /= length
 	}
-
-	mod := float32(1);
-	for range p.Auras {
-		//a.EffectId
-		mod = 0 //this is incomplete -> check here for slow auras
-		
-    }
-	xAxis *= mod
-	yAxis *= mod
+			
+	xAxis *= p.getInternalPlayer(state).StatModifiers.MovementSpeed
+	yAxis *= p.getInternalPlayer(state).StatModifiers.MovementSpeed
 
 	currentPlayerInternal := p.getInternalPlayer(state)	
 
+	moveMsgCount := currentPlayerInternal.MoveMessageCountThisFrame
+	if(p.Type == PublicMatchState_Interactable_NPC)	{
+		moveMsgCount = 1
+	}
+
+
 	add := PublicMatchState_Vector2Df {
-		X: xAxis / float32(currentPlayerInternal.MoveMessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
-		Y: yAxis / float32(currentPlayerInternal.MoveMessageCountThisFrame) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
+		X: xAxis / float32(moveMsgCount) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
+		Y: yAxis / float32(moveMsgCount) * ((currentPlayerInternal.BasePlayerStats.MovementSpeed - currentPlayerInternal.StatModifiers.MovementSpeed) / float32(state.TickRate)),
 	}
 	
 	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
@@ -84,6 +84,10 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 			//better: find edge between this triangle and destination point, then move along the edge
 		} 
 	}	
+}
+
+func (p *PublicMatchState_Interactable) RotateTowardsTogarget(state *MatchState, targetPos *PublicMatchState_Vector2Df) {
+	p.Rotation = float32(math.Atan2(float64(targetPos.X), float64(targetPos.Y)) * 57.2957795131);
 }
 
 //regen
@@ -527,8 +531,8 @@ func (p *PublicMatchState_Interactable) recalcStats(state *MatchState) {
 		
 		switch effect.Type.(type) {
 		case *GameDB.Effect_Apply_Aura_Mod:
-			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed && effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value > p.getInternalPlayer(state).StatModifiers.MovementSpeed {
-				p.getInternalPlayer(state).StatModifiers.MovementSpeed = effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
+			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed {
+				p.getInternalPlayer(state).StatModifiers.MovementSpeed *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
 			}
 		}
 	}
