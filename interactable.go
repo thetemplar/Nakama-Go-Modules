@@ -40,8 +40,6 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		Y: yAxis / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
 	}
 	
-	fmt.Printf("add %v %v > %v %v\n", xAxis, yAxis, add.X, add.Y)
-	
 	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
 		return
 	}
@@ -51,13 +49,11 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		p.cancelCast(state)
 	}
 
-	rotatedAdd := add.rotate(rotation)
-		
+	rotatedAdd := add.rotate(rotation)		
 
 	p.Position.X += rotatedAdd.X;
 	p.Position.Y += rotatedAdd.Y;
 	p.Rotation = rotation;
-	
 
 	//am i still in my triangle?	
 	if currentPlayerInternal.TriangleIndex >= 0 {
@@ -477,7 +473,7 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 	if spell.CastTime == 0 {
 		p.finishCast(state, spell, targetId)
 	} else {
-		end := int64(spell.CastTime * (float32(1) - thisChar.getSpellAttackSpeed(thisClass)) * float32(state.TickRate)) + state.PublicMatchState.Tick
+		end := int64(spell.CastTime * (thisChar.getSpellAttackSpeed(thisClass)) * float32(state.TickRate)) + state.PublicMatchState.Tick
 		target := ""
 		if spell.Target_Type != GameDB.Spell_Target_Type_None {
 			target = targetId

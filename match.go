@@ -94,6 +94,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 	enemyInternal.Act = Act_Ogre
 	state.InternalPlayer[enemyInternal.Id] = enemyInternal
+	state.PublicMatchState.Interactable[enemy.Id].recalcStats(state)
 	state.NpcCounter++
 
 	if state.Debug {
