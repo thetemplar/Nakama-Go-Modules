@@ -56,6 +56,10 @@ type PlayerStats struct{
 	MovementSpeedModifier		float32
 }
 
+func (p *InternalInteractable) getClass(state *MatchState) *GameDB.Class {
+	return state.GameDB.Classes[p.Classname]
+}
+
 //timer
 func (p *InternalInteractable) startAutoattackTimer(endMainhand int64, endOffhand int64, targetId string){
 	if endMainhand > 0 {
@@ -87,20 +91,24 @@ func (p *InternalInteractable) stopCastTimer(){
 
 
 //movement
-func (p *InternalInteractable) performMovement(state *MatchState, xAxis, yAxis, rotation float32) {
+func (p *InternalInteractable) performMovement(state *MatchState, vector PublicMatchState_Vector2Df, rotation float32, movementSpeed float32) {
 	p.Rotation = rotation;
 	//clamb [-1..1]
-	length := float32(math.Sqrt(math.Pow(float64(xAxis), 2) + math.Pow(float64(yAxis), 2)))
-	if length == 0 {
+	if vector.length() == 0 {
 		return
 	}
-	if length > 1 {
-		xAxis /= length
-		yAxis /= length
+	if vector.length() > 1 {
+		fmt.Printf("* * %v * *", vector.length())
+		vector.X /= vector.length()
+		vector.Y /= vector.length()
 	}
+
+	vector.X *= (movementSpeed / float32(100))
+	vector.Y *= (movementSpeed / float32(100))
+
 	mod := p.StatModifiers.MovementSpeedModifier
-	xAxis *= mod
-	yAxis *= mod
+	vector.X *= mod
+	vector.Y *= mod
 
 	moveMsgCount := p.MoveMessageCountThisFrame
 	if(p.Type == PublicMatchState_Interactable_NPC)	{
@@ -108,15 +116,15 @@ func (p *InternalInteractable) performMovement(state *MatchState, xAxis, yAxis, 
 	}
 
 	add := PublicMatchState_Vector2Df {
-		X: xAxis / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
-		Y: yAxis / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
+		X: vector.X / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
+		Y: vector.Y / float32(moveMsgCount) * ((20) / float32(state.TickRate)),
 	}
 	
 	if math.IsNaN(float64(add.X)) || math.IsNaN(float64(add.Y)) {
 		return
 	}
 
-	if p.CastingSpellId > 0 && state.GameDB.Spells[p.CastingSpellId].InterruptedBy != GameDB.Interrupt_Type_None && (xAxis != 0 || yAxis != 0) {
+	if p.CastingSpellId > 0 && state.GameDB.Spells[p.CastingSpellId].InterruptedBy != GameDB.Interrupt_Type_None && (vector.X != 0 || vector.Y != 0) {
 		fmt.Printf("cancelCast %v\n", p.CastingSpellId)
 		p.cancelCast(state)
 	}
@@ -372,6 +380,47 @@ func (p *InternalInteractable) applyAbilityDamage(state *MatchState, effect *Gam
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 }
 
+
+func (p *InternalInteractable) applyAbilityHeal(state *MatchState, effect *GameDB.Effect, creator string) {
+	source :=  state.Player[creator]
+	sourceClass := state.GameDB.Classes[p.Classname]
+
+	healInput := randomFloatInt(effect.ValueMin, effect.ValueMax)
+	fmt.Printf("\applyAbilityHeal %v from effect %v to unit %v\n", healInput, effect, p.Id)
+	
+	roll := randomPercentage()
+	crit := source.getSpellCritChance(sourceClass)
+	healInputCrit := float32(0)
+	if roll <= crit {
+		healInputCrit = healInput * 2
+		fmt.Printf("crit (%v/%v) damage to %v: %v -> %v from %v\n", roll, crit, p.Id, healInput, healInputCrit, effect)
+		healInput = 0
+	} 
+
+	overheal := float32(0)
+	overheal = (healInput + healInputCrit) - (p.getMaxHp(p.getClass(state)) - p.CurrentHealth)
+	if overheal <= 0 {
+		overheal = 0
+	}
+	p.CurrentHealth += (healInput + healInputCrit) - overheal;	
+	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (healInput + healInputCrit) - overheal, effect, p.CurrentHealth)
+
+	clEntry := &PublicMatchState_CombatLogEntry {
+		Timestamp: state.PublicMatchState.Tick,
+		SourceId: creator,
+		DestinationId: p.Id,
+		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
+		Source: PublicMatchState_CombatLogEntry_Spell,
+		Type: &PublicMatchState_CombatLogEntry_Heal{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Heal{
+			Amount: healInput,
+			Absorbed: 0,
+			Critical: healInputCrit,
+			Overheal: overheal,			
+		}},
+	}
+	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+}
+
 func (p *InternalInteractable) containsEffectId(id int64, creator string) int64 {
     for i, a := range p.Auras {
         if a.EffectId == id && a.Creator == creator{
@@ -491,24 +540,24 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 	} else {
 		if p.Target == "" {
 			failedMessage = "No Target!"
-		}
-
-		targetId = p.Target
-		target := state.Player[targetId]
-		distance := p.Position.distance(target.Position)		
-		
-		behind := target.Position.isFacedBy(p.Position, p.Rotation)
-		if spell.FacingFront && !behind {
-			failedMessage = "Is not facing target!"
-		}
-
-		if distance > spell.Range {	
-			fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
-			failedMessage = "Out of Range!"
-		}
-
-		if IntersectingBorders(p.Position, target.Position, state.Map) {
-			failedMessage = "Not in Line of Sight!"
+		} else {
+			targetId = p.Target
+			target := state.Player[targetId]
+			distance := p.Position.distance(target.Position)		
+			
+			behind := target.Position.isFacedBy(p.Position, p.Rotation)
+			if spell.FacingFront && !behind {
+				failedMessage = "Is not facing target!"
+			}
+	
+			if distance > spell.Range {	
+				fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
+				failedMessage = "Out of Range!"
+			}
+	
+			if IntersectingBorders(p.Position, target.Position, state.Map) {
+				failedMessage = "Not in Line of Sight!"
+			}
 		}
 
 		if failedMessage != "" {
@@ -569,24 +618,35 @@ func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell
 		p.CurrentPower -= float32(spell.CostPercentage) * p.getMaxMana(thisClass);
 		p.LastPowerDrainTick = state.PublicMatchState.Tick	
 
-		fmt.Printf("finish cast spell: %v (mana now: %v)\n", spell.Id, p.CurrentPower)
+		fmt.Printf("finish cast spell: %v (mana now: %v)\n", spell.Name, p.CurrentPower)
 
-		p.GlobalCooldown = spell.GlobalCooldown
-		proj := &PublicMatchState_Projectile{
-			Id: "p_" + strconv.FormatInt(state.ProjectileCounter, 16),
-			SpellId: spell.Id,
-			Position: &PublicMatchState_Vector2Df {
-				X: p.Position.X,
-				Y: p.Position.Y,
-			},
-			Rotation: p.Rotation,
-			CreatedAtTick: state.PublicMatchState.Tick,
-			Target: targetId,
-			Speed: spell.Speed,
-			Creator: p.Id,
+		switch spell.Application_Type {
+		case GameDB.Spell_Application_Type_WeaponSwing:
+		case GameDB.Spell_Application_Type_Instant:
+			SpellHit(state, state.Player[targetId], p.Id, spell)
+		case GameDB.Spell_Application_Type_Missile:			
+			p.GlobalCooldown = spell.GlobalCooldown
+			proj := &PublicMatchState_Projectile{
+				Id: "p_" + strconv.FormatInt(state.ProjectileCounter, 16),
+				SpellId: spell.Id,
+				Position: &PublicMatchState_Vector2Df {
+					X: p.Position.X,
+					Y: p.Position.Y,
+				},
+				Rotation: p.Rotation,
+				CreatedAtTick: state.PublicMatchState.Tick,
+				Target: targetId,
+				Speed: spell.Speed,
+				Creator: p.Id,
+			}
+			state.PublicMatchState.Projectile[proj.Id] = proj
+			state.ProjectileCounter++	
+		case GameDB.Spell_Application_Type_Beam:
+			SpellHit(state, state.Player[targetId], p.Id, spell)
+		case GameDB.Spell_Application_Type_AoE:
+		case GameDB.Spell_Application_Type_Cone:
+		case GameDB.Spell_Application_Type_Summon:			
 		}
-		state.PublicMatchState.Projectile[proj.Id] = proj
-		state.ProjectileCounter++	
 	} else {
 		clEntry := &PublicMatchState_CombatLogEntry {
 			Timestamp: state.PublicMatchState.Tick,

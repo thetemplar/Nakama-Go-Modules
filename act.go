@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"fmt"
 )
 
@@ -16,10 +15,9 @@ func Act_Ogre(state *MatchState, self *InternalInteractable) {
 		X: target.Position.X - self.Position.X,
 		Y: target.Position.Y - self.Position.Y,
 	}
-	length := float32(math.Sqrt(math.Pow(float64(direction.X), 2) + math.Pow(float64(direction.Y), 2)))
-	if(length > 2) {		
+	if(direction.length() > float32(4)) {		
 		self.rotateTowardsTarget(target.Position)
-		self.performMovement(state, direction.X, direction.Y, 0)
+		self.performMovement(state, direction, 0, self.getClass(state).MovementSpeed)
 	}
 
 	if(self.CurrentHealth < 100) {

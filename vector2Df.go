@@ -15,6 +15,10 @@ func (v PublicMatchState_Vector2Df) rotate(degrees float32) PublicMatchState_Vec
 	return vec
 }
 
+func (v PublicMatchState_Vector2Df) length() float32 {
+	return float32(math.Sqrt(math.Pow(float64(v.X), 2) + math.Pow(float64(v.Y), 2)))
+}
+
 func (v PublicMatchState_Vector2Df) distance(t *PublicMatchState_Vector2Df) float32 {
 	return float32(math.Sqrt(math.Pow(float64(t.X - v.X), 2) + math.Pow(float64(t.Y - v.Y), 2)))
 }

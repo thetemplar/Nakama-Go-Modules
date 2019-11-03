@@ -250,7 +250,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			player.LastMovement = msg.GetMove()
 			player.stopAutoattackTimer();
 			player.stopCastTimer();
-			player.performMovement(state.(*MatchState), msg.GetMove().XAxis, msg.GetMove().YAxis, msg.GetMove().Rotation)
+			player.performMovement(state.(*MatchState), PublicMatchState_Vector2Df { X: msg.GetMove().XAxis, Y: msg.GetMove().YAxis }, msg.GetMove().Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
 		case *Client_Message_SelectChar:
 			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname)
 			player = state.(*MatchState).Player[message.GetUserId()];
@@ -268,7 +268,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				player.MoveMessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
 		
-				player.performMovement(state.(*MatchState), player.LastMovement.XAxis, player.LastMovement.YAxis, player.LastMovement.Rotation)
+				player.performMovement(state.(*MatchState), PublicMatchState_Vector2Df { X: player.LastMovement.XAxis, Y: player.LastMovement.YAxis }, player.LastMovement.Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
 			}
 		}
 	}
@@ -285,6 +285,11 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB.Effect_Apply_Aura_Periodic_Damage).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
 					aura.AuraTickCount++					
 					player.applyAbilityDamage(state.(*MatchState), effect, aura.Creator)
+				}
+			case *GameDB.Effect_Apply_Aura_Periodic_Heal:
+				if int64(float32(aura.AuraTickCount + 1) * effect.Type.(*GameDB.Effect_Apply_Aura_Periodic_Heal).Intervall * float32(tickrate)) + aura.CreatedAtTick < tick {
+					aura.AuraTickCount++					
+					player.applyAbilityHeal(state.(*MatchState), effect, aura.Creator)
 				}
 			}			
 
@@ -368,7 +373,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	//state.(*MatchState).OldMatchState[tick] = historyCopy
 
 	//end if no ones sending smth (all dc'ed)
-	if true {
+	if false {
 		if len(messages) == 0 {
 			state.(*MatchState).EmptyCounter = state.(*MatchState).EmptyCounter + 1;
 		} else {

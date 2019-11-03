@@ -31,10 +31,11 @@ message PublicMatchState {
 		oneof type {
 			CombatLogEntry_Damage damage = 7;
 			CombatLogEntry_Missed missed_type = 8;
-			CombatLogEntry_Interrupted interrupted = 9;
-			CombatLogEntry_Aura aura = 10;
-			CombatLogEntry_Cast cast = 11;
-			string system_message = 12;
+			CombatLogEntry_Heal heal = 9;
+			CombatLogEntry_Interrupted interrupted = 10;
+			CombatLogEntry_Aura aura = 11;
+			CombatLogEntry_Cast cast = 12;
+			string system_message = 13;
 		}
 
 		message CombatLogEntry_Damage {

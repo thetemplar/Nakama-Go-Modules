@@ -97,7 +97,7 @@ func init_db() *GameDB.Database {
 		Mechanic:    GameDB.Spell_Mechanic_Slowed,
 		Type: &GameDB.Effect_Apply_Aura_Mod{
 			Stat:  GameDB.Stat_Speed,
-			Value: 0.75,
+			Value: 0.5,
 		},
 		ValueMin: 0,
 		ValueMax: 0,
@@ -159,18 +159,50 @@ func init_db() *GameDB.Database {
 		Description: "Haste",
 		Visible:     true,
 		EffectID:    0,
-		Duration:    10,
+		Duration:    5,
 		Dispellable: false,
 		School:      GameDB.Spell_SchoolType_Physical,
 		Mechanic:    GameDB.Spell_Mechanic_None,
 		Type: &GameDB.Effect_Apply_Aura_Mod{
 			Stat:  GameDB.Stat_Speed,
-			Value: 1.5,
+			Value: 1.75,
 		},
 		ValueMin: 0,
 		ValueMax: 0,
 	}
 	GameDatabase.Effects[GameDB_Effect_Haste.Id] = GameDB_Effect_Haste
+	GameDB_Effect_HealingSpirits := &GameDB.Effect{
+		Id:          8,
+		Name:        "Healing Spirits",
+		Description: "Healing Spirits",
+		Visible:     true,
+		EffectID:    0,
+		Duration:    6,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Holy,
+		Mechanic:    GameDB.Spell_Mechanic_Healing,
+		Type: &GameDB.Effect_Apply_Aura_Periodic_Heal{
+			Intervall: 1,
+		},
+		ValueMin: 20,
+		ValueMax: 30,
+	}
+	GameDatabase.Effects[GameDB_Effect_HealingSpirits.Id] = GameDB_Effect_HealingSpirits
+	GameDB_Effect_HealingSurge := &GameDB.Effect{
+		Id:          9,
+		Name:        "Healing Surge",
+		Description: "Healing Surge",
+		Visible:     true,
+		EffectID:    0,
+		Duration:    0,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Holy,
+		Mechanic:    GameDB.Spell_Mechanic_Healing,
+		Type:        &GameDB.Effect_Heal{},
+		ValueMin:    50,
+		ValueMax:    60,
+	}
+	GameDatabase.Effects[GameDB_Effect_HealingSurge.Id] = GameDB_Effect_HealingSurge
 
 	//PROCS
 
@@ -295,12 +327,72 @@ func init_db() *GameDB.Database {
 		ApplyProc:          []*GameDB.Proc{},
 	}
 	GameDatabase.Spells[GameDB_Spell_Enrage.Id] = GameDB_Spell_Enrage
+	GameDB_Spell_HealingSpirits := &GameDB.Spell{
+		Id:                 5,
+		Name:               "Healing Spirits",
+		Description:        "Healing Spirits",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           10,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_Instant,
+		BaseCost:           50,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           0,
+		CastTimeChanneled:  0,
+		Range:              50,
+		FacingFront:        true,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_Ally,
+		InterruptedBy:      GameDB.Interrupt_Type_None,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[8]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_HealingSpirits.Id] = GameDB_Spell_HealingSpirits
+	GameDB_Spell_HealingSurge := &GameDB.Spell{
+		Id:                 6,
+		Name:               "Healing Surge",
+		Description:        "Healing Surge",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           0,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_Instant,
+		BaseCost:           20,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           2,
+		CastTimeChanneled:  0,
+		Range:              30,
+		FacingFront:        true,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_Ally,
+		InterruptedBy:      GameDB.Interrupt_Type_OnMovement,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[9]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_HealingSurge.Id] = GameDB_Spell_HealingSurge
 
 	//CLASSES
 	GameDB_Class_Mage := &GameDB.Class{
 		Name:                    "Mage",
 		Description:             "Mage",
-		Spells:                  []*GameDB.Spell{GameDatabase.Spells[1], GameDatabase.Spells[2], GameDatabase.Spells[3]},
+		Spells:                  []*GameDB.Spell{GameDatabase.Spells[1], GameDatabase.Spells[2], GameDatabase.Spells[3], GameDatabase.Spells[5], GameDatabase.Spells[6]},
 		Mainhand:                GameDatabase.Items[3],
 		Offhand:                 nil,
 		Items:                   []*GameDB.Item{},
@@ -327,7 +419,7 @@ func init_db() *GameDB.Database {
 		FactorSpellAP:           3,
 		FactorSpellAttackSpeed:  1,
 		FactorSpellCriticalHits: 1,
-		MovementSpeed:           1,
+		MovementSpeed:           65,
 	}
 	GameDatabase.Classes[GameDB_Class_Mage.Name] = GameDB_Class_Mage
 	GameDB_Class_Ogre := &GameDB.Class{
@@ -360,7 +452,7 @@ func init_db() *GameDB.Database {
 		FactorSpellAP:           1,
 		FactorSpellAttackSpeed:  1,
 		FactorSpellCriticalHits: 1,
-		MovementSpeed:           0.8,
+		MovementSpeed:           45,
 	}
 	GameDatabase.Classes[GameDB_Class_Ogre.Name] = GameDB_Class_Ogre
 
