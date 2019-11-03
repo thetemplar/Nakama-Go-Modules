@@ -7,13 +7,8 @@ import (
 	"Nakama-Go-Modules/GameDB"
 )
 
-//helper
-func (p *PublicMatchState_Interactable) getInternalPlayer(state *MatchState) (*InternalPlayer) {
-	return state.InternalPlayer[p.Id];
-}
-
 //movement
-func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis, yAxis, rotation float32) {
+func (p *InternalInteractable) performMovement(state *MatchState, xAxis, yAxis, rotation float32) {
 	p.Rotation = rotation;
 	//clamb [-1..1]
 	length := float32(math.Sqrt(math.Pow(float64(xAxis), 2) + math.Pow(float64(yAxis), 2)))
@@ -24,13 +19,11 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		xAxis /= length
 		yAxis /= length
 	}
-	mod := p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier
+	mod := p.StatModifiers.MovementSpeedModifier
 	xAxis *= mod
 	yAxis *= mod
 
-	currentPlayerInternal := p.getInternalPlayer(state)	
-
-	moveMsgCount := currentPlayerInternal.MoveMessageCountThisFrame
+	moveMsgCount := p.MoveMessageCountThisFrame
 	if(p.Type == PublicMatchState_Interactable_NPC)	{
 		moveMsgCount = 1
 	}
@@ -44,8 +37,8 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 		return
 	}
 
-	if currentPlayerInternal.CastingSpellId > 0 && state.GameDB.Spells[currentPlayerInternal.CastingSpellId].InterruptedBy != GameDB.Interrupt_Type_None && (xAxis != 0 || yAxis != 0) {
-		fmt.Printf("cancelCast %v\n", currentPlayerInternal.CastingSpellId)
+	if p.CastingSpellId > 0 && state.GameDB.Spells[p.CastingSpellId].InterruptedBy != GameDB.Interrupt_Type_None && (xAxis != 0 || yAxis != 0) {
+		fmt.Printf("cancelCast %v\n", p.CastingSpellId)
 		p.cancelCast(state)
 	}
 
@@ -56,21 +49,21 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 	p.Rotation = rotation;
 
 	//am i still in my triangle?	
-	if currentPlayerInternal.TriangleIndex >= 0 {
-		isItIn, _, _, _ := state.Map.Triangles[currentPlayerInternal.TriangleIndex].isInTriangle(p.Position)
+	if p.TriangleIndex >= 0 {
+		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].isInTriangle(p.Position)
 		if !isItIn {
-			currentPlayerInternal.TriangleIndex = -1
+			p.TriangleIndex = -1
 		}
 	}
 
 	//no current triangle_index?
-	if currentPlayerInternal.TriangleIndex < 0 {
+	if p.TriangleIndex < 0 {
 		//find triangle I am in
 		found := false
 		for i, triangle := range state.Map.Triangles {
 			isItIn, _, _, _ := triangle.isInTriangle(p.Position)
 			if isItIn {
-				currentPlayerInternal.TriangleIndex = int64(i)
+				p.TriangleIndex = int64(i)
 				found = true
 				break;
 			}
@@ -84,40 +77,37 @@ func (p *PublicMatchState_Interactable) PerformMovement(state *MatchState, xAxis
 	}	
 }
 
-func (p *PublicMatchState_Interactable) RotateTowardsTogarget(state *MatchState, targetPos *PublicMatchState_Vector2Df) {
+func (p *InternalInteractable) rotateTowardsTarget(targetPos *PublicMatchState_Vector2Df) {
 	p.Rotation = float32(math.Atan2(float64(targetPos.X), float64(targetPos.Y)) * 57.2957795131);
 }
 
 //regen
-func (p *PublicMatchState_Interactable) Regen(state *MatchState, hpPercent, powerPercent float64) {	
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
+func (p *InternalInteractable) regen(state *MatchState, hpPercent, powerPercent float64) {	
+	thisClass := state.GameDB.Classes[p.Classname]
 
-	if thisChar.CurrentHealth <= 0 {
+	if p.CurrentHealth <= 0 {
 		return
 	}
 
-	thisChar.CurrentHealth += float32(math.Max(float64(thisChar.getHpRegen(thisClass)) * hpPercent, 0));
-	thisChar.CurrentPower += float32(math.Max(float64(thisChar.getManaRegen(thisClass)) * powerPercent, 0));
+	p.CurrentHealth += float32(math.Max(float64(p.getHpRegen(thisClass)) * hpPercent, 0));
+	p.CurrentPower += float32(math.Max(float64(p.getManaRegen(thisClass)) * powerPercent, 0));
 
-	thisChar.CurrentHealth = float32(math.Min(float64(thisChar.CurrentHealth), float64(thisChar.getMaxHp(thisClass))))
-	thisChar.CurrentPower = float32(math.Min(float64(thisChar.CurrentPower), float64(thisChar.getMaxMana(thisClass))))
+	p.CurrentHealth = float32(math.Min(float64(p.CurrentHealth), float64(p.getMaxHp(thisClass))))
+	p.CurrentPower = float32(math.Min(float64(p.CurrentPower), float64(p.getMaxMana(thisClass))))
 }
 
 //fight
-func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState, creator string, slot GameDB.Item_Slot) {
-	source :=  state.PublicMatchState.Interactable[creator]
-	sourceChar := source.Character
-	sourceClass := state.GetClassFromDB(sourceChar)
+func (p *InternalInteractable) applyAutoattackDamage(state *MatchState, creator string, slot GameDB.Item_Slot) {
+	source :=  state.Player[creator]
+	sourceClass := state.GameDB.Classes[source.Classname]
 	
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
+	thisClass := state.GameDB.Classes[p.Classname]
 	if(!p.IsEngaged || p.Target == "") {
 		p.Target = source.Id
 	}
 	p.IsEngaged = true
 
-	miss := (1 - sourceChar.getMeeleHitChance(sourceClass))
+	miss := (1 - source.getMeeleHitChance(sourceClass))
 	dmgInput := float32(0)
 	
 	var item *GameDB.Item
@@ -135,16 +125,16 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 		}
 	}
 	dmgInput = randomFloatInt(item.DamageMin, item.DamageMax)
-	fmt.Printf("\napplyAutoattackDamage (%v) %v+%v to unit %v\n", slot, dmgInput, sourceChar.getMeeleAttackPower(sourceClass), p.Id)
-	dmgInput += sourceChar.getMeeleAttackPower(sourceClass)
+	fmt.Printf("\napplyAutoattackDamage (%v) %v+%v to unit %v\n", slot, dmgInput, source.getMeeleAttackPower(sourceClass), p.Id)
+	dmgInput += source.getMeeleAttackPower(sourceClass)
 
 	if slot == GameDB.Item_Slot_Weapon_OffHand {
 		miss *= 2
 	}
 	
 	roll := randomPercentage()
-	dodge := thisChar.getDodgeChance(thisClass)
-	parry := thisChar.getParryChance(thisClass)
+	dodge := p.getDodgeChance(thisClass)
+	parry := p.getParryChance(thisClass)
 	behind := source.Position.isBehind(p.Position, p.Rotation)
 	if behind {
 		dodge = 0
@@ -177,10 +167,10 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 		return;
 	}
 	
-	armor := thisChar.getArmor(thisClass)
+	armor := p.getArmor(thisClass)
 	dmgInput -= armor
 
-	block := thisChar.getBlockPercentage(thisClass)
+	block := p.getBlockPercentage(thisClass)
 	if behind || (thisClass.Offhand != nil && thisClass.Offhand.Type != GameDB.Item_Type_Weapon_Shield) {
 		block = 0
 	}
@@ -193,7 +183,7 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	}
 	
 	roll = randomPercentage()
-	crit := sourceChar.getMeeleCritChance(sourceClass)
+	crit := source.getMeeleCritChance(sourceClass)
 	dmgInputCrit := float32(0)
 	if roll <= crit {
 		dmgBlocked = dmgBlocked * 2
@@ -203,13 +193,13 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	} 
 
 	overkill := float32(0)
-	overkill = (dmgInput + dmgInputCrit) - thisChar.CurrentHealth
+	overkill = (dmgInput + dmgInputCrit) - p.CurrentHealth
 	if overkill <= 0 {
 		overkill = 0
 	}
-	thisChar.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;
-	p.getInternalPlayer(state).LastHealthDrainTick = state.PublicMatchState.Tick
-	fmt.Printf("applyDamage to %v: %v -> now:  %v\n", p.Id, (dmgInput + dmgInputCrit) - overkill, thisChar.CurrentHealth)
+	p.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;
+	p.LastHealthDrainTick = state.PublicMatchState.Tick
+	fmt.Printf("applyDamage to %v: %v -> now:  %v\n", p.Id, (dmgInput + dmgInputCrit) - overkill, p.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
@@ -229,13 +219,11 @@ func (p *PublicMatchState_Interactable) applyAutoattackDamage(state *MatchState,
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)	
 }
 
-func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, effect *GameDB.Effect, creator string) {
-	source :=  state.PublicMatchState.Interactable[creator]
-	sourceChar :=  source.Character
-	sourceClass := state.GetClassFromDB(sourceChar)
+func (p *InternalInteractable) applyAbilityDamage(state *MatchState, effect *GameDB.Effect, creator string) {
+	source :=  state.Player[creator]
+	sourceClass := state.GameDB.Classes[p.Classname]
 	
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
+	thisClass := state.GameDB.Classes[p.Classname]
 	if(!p.IsEngaged || p.Target == "") {
 		p.Target = source.Id
 	}
@@ -248,7 +236,7 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	miss := float32(0)
 	switch effect.Type.(type) {
 	case GameDB.Effect_Damage:
-		miss = (1 - sourceChar.getSpellHitChance(sourceClass))
+		miss = (1 - source.getSpellHitChance(sourceClass))
 	}
 	if roll <= miss {
 		fmt.Printf("miss (%v/%v) damage to %v: %v from %v\n", roll, miss, p.Id, dmgInput, effect)		
@@ -263,13 +251,13 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 	}
 
-	resist := thisChar.getResistance(thisClass, effect.School)
+	resist := p.getResistance(thisClass, effect.School)
 	dmgResisted := dmgInput * resist / 100
 	dmgInput = dmgInput - dmgResisted
 	fmt.Printf("magical reduction by resistance (%v) by %v -> %v\n", resist, dmgResisted, dmgInput)
 
 	roll = randomPercentage()
-	crit := sourceChar.getSpellCritChance(sourceClass)
+	crit := source.getSpellCritChance(sourceClass)
 	dmgInputCrit := float32(0)
 	if roll <= crit {
 		dmgResisted = dmgResisted * 2
@@ -279,13 +267,13 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	} 
 
 	overkill := float32(0)
-	overkill = (dmgInput + dmgInputCrit) - thisChar.CurrentHealth
+	overkill = (dmgInput + dmgInputCrit) - p.CurrentHealth
 	if overkill <= 0 {
 		overkill = 0
 	}
-	thisChar.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
-	p.getInternalPlayer(state).LastHealthDrainTick = state.PublicMatchState.Tick
-	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (dmgInput + dmgInputCrit) - overkill, effect, thisChar.CurrentHealth)
+	p.CurrentHealth -= (dmgInput + dmgInputCrit) - overkill;	
+	p.LastHealthDrainTick = state.PublicMatchState.Tick
+	fmt.Printf("applyDamage to %v: %v from %v  -> now:  %v\n\n", p.Id, (dmgInput + dmgInputCrit) - overkill, effect, p.CurrentHealth)
 
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
@@ -305,7 +293,7 @@ func (p *PublicMatchState_Interactable) applyAbilityDamage(state *MatchState, ef
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 }
 
-func (p *PublicMatchState_Interactable) containsEffectId(id int64, creator string) int64 {
+func (p *InternalInteractable) containsEffectId(id int64, creator string) int64 {
     for i, a := range p.Auras {
         if a.EffectId == id && a.Creator == creator{
             return int64(i)
@@ -315,14 +303,12 @@ func (p *PublicMatchState_Interactable) containsEffectId(id int64, creator strin
 }
 
 //autoattack
-func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attacktype Client_Message_Client_Autoattack_Type) {
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
+func (p *InternalInteractable) startAutoattack(state *MatchState, attacktype Client_Message_Client_Autoattack_Type) {
+	thisClass := state.GameDB.Classes[p.Classname]
 
-	currentPlayerInternal := p.getInternalPlayer(state)	
 	failedMessage := ""
 
-	if currentPlayerInternal.CastingSpellId > 0 && state.GameDB.Spells[currentPlayerInternal.CastingSpellId].IgnoresWeaponswing == false {
+	if p.CastingSpellId > 0 && state.GameDB.Spells[p.CastingSpellId].IgnoresWeaponswing == false {
 		failedMessage = "Cannot do that now!"
 		
 	}
@@ -332,7 +318,7 @@ func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attac
 	}
 
 	targetId := p.Target
-	target := state.PublicMatchState.Interactable[targetId]
+	target := state.Player[targetId]
 	distance := p.Position.distance(target.Position)	
 	
 	
@@ -360,30 +346,30 @@ func (p *PublicMatchState_Interactable) startAutoattack(state *MatchState, attac
 		}
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
-		currentPlayerInternal.stopAutoattackTimer()
+		p.stopAutoattackTimer()
 
 		return
 	}
 	mhEnd := int64(0)
 	if (thisClass.Mainhand != nil && thisClass.Mainhand.AttackSpeed > 0) {
-		mhEnd = int64(thisClass.Mainhand.AttackSpeed * thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
+		mhEnd = int64(thisClass.Mainhand.AttackSpeed * p.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
 		
 		fmt.Printf("swinging mainhand at  %v\n", mhEnd)
 	}
 	ohEnd := int64(0)
 	if (thisClass.Offhand != nil && thisClass.Offhand.AttackSpeed > 0) {
-		ohEnd = int64(thisClass.Offhand.AttackSpeed * thisChar.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
+		ohEnd = int64(thisClass.Offhand.AttackSpeed * p.getMeeleAttackSpeed(thisClass) * float32(state.TickRate)) + state.PublicMatchState.Tick
 	
 		fmt.Printf("swinging offhand at  %v\n", ohEnd)
 	}
-	currentPlayerInternal.startAutoattackTimer(mhEnd, ohEnd, targetId)
+	p.startAutoattackTimer(mhEnd, ohEnd, targetId)
 }
 
-func (p *PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot GameDB.Item_Slot, targetId string) {
-	target := state.PublicMatchState.Interactable[targetId]
+func (p *InternalInteractable) finishAutoattack(state *MatchState, slot GameDB.Item_Slot, targetId string) {
+	target := state.Player[targetId]
 	distance := p.Position.distance(target.Position)	
 
-	if distance > state.GetClassFromDB(p.Character).Mainhand.Range {
+	if distance > state.GameDB.Classes[p.Classname].Mainhand.Range {
 		fmt.Printf("startAutoattack failed: Out of Range!\n")
 		clEntry := &PublicMatchState_CombatLogEntry {
 			Timestamp: state.PublicMatchState.Tick,
@@ -396,7 +382,7 @@ func (p *PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot
 		}
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
-		p.getInternalPlayer(state).stopAutoattackTimer()
+		p.stopAutoattackTimer()
 
 		return
 	}
@@ -404,19 +390,17 @@ func (p *PublicMatchState_Interactable) finishAutoattack(state *MatchState, slot
 }
 
 //casts
-func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *GameDB.Spell) {		
+func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell) {		
 	fmt.Printf("startCast: %v %v\n", spell.Id, spell.Name)
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
-	currentPlayerInternal := p.getInternalPlayer(state)
+	thisClass := state.GameDB.Classes[p.Classname]
 	failedMessage := ""
 
-	if (p.GlobalCooldown > 0 || spell.IgnoresGCD == true) || currentPlayerInternal.CastingSpellId > 0 {
+	if (p.GlobalCooldown > 0 || spell.IgnoresGCD == true) || p.CastingSpellId > 0 {
 		failedMessage = "Cannot do that now!"
 	}
 	
-	manacost := float32(spell.BaseCost) + float32(spell.CostPercentage) * thisChar.getMaxMana(thisClass);
-	if manacost > thisChar.CurrentPower {
+	manacost := float32(spell.BaseCost) + float32(spell.CostPercentage) * p.getMaxMana(thisClass);
+	if manacost > p.CurrentPower {
 		failedMessage = "Not enough Mana!"
 	}
 
@@ -431,7 +415,7 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 		}
 
 		targetId = p.Target
-		target := state.PublicMatchState.Interactable[targetId]
+		target := state.Player[targetId]
 		distance := p.Position.distance(target.Position)		
 		
 		behind := target.Position.isFacedBy(p.Position, p.Rotation)
@@ -466,27 +450,27 @@ func (p *PublicMatchState_Interactable) startCast(state *MatchState, spell *Game
 	}
 
 	if spell.IgnoresWeaponswing == false {
-		currentPlayerInternal.stopAutoattackTimer()
+		p.stopAutoattackTimer()
 	}
 	
-	p.getInternalPlayer(state).LastPowerDrainTick = state.PublicMatchState.Tick
+	p.LastPowerDrainTick = state.PublicMatchState.Tick
 	if spell.CastTime == 0 {
 		p.finishCast(state, spell, targetId)
 	} else {
-		end := int64(spell.CastTime * (thisChar.getSpellAttackSpeed(thisClass)) * float32(state.TickRate)) + state.PublicMatchState.Tick
+		end := int64(spell.CastTime * (p.getSpellAttackSpeed(thisClass)) * float32(state.TickRate)) + state.PublicMatchState.Tick
 		target := ""
 		if spell.Target_Type != GameDB.Spell_Target_Type_None {
 			target = targetId
 		} 
-		currentPlayerInternal.startCastTimer(spell.Id, end, target)
+		p.startCastTimer(spell.Id, end, target)
 	}
 }
 
-func (p *PublicMatchState_Interactable) cancelCast(state *MatchState) {	
+func (p *InternalInteractable) cancelCast(state *MatchState) {	
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
 		SourceId: p.Id,
-		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{p.getInternalPlayer(state).CastingSpellId},
+		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{p.CastingSpellId},
 		Source: PublicMatchState_CombatLogEntry_Spell,
 		Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
 			Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
@@ -495,19 +479,18 @@ func (p *PublicMatchState_Interactable) cancelCast(state *MatchState) {
 	}
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
-	p.getInternalPlayer(state).stopCastTimer()
+	p.stopCastTimer()
 }
 
-func (p *PublicMatchState_Interactable) finishCast(state *MatchState, spell *GameDB.Spell, targetId string) {
-	thisChar := p.Character
-	thisClass := state.GetClassFromDB(p.Character)
+func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell, targetId string) {
+	thisClass := state.GameDB.Classes[p.Classname]
 
-	if !IntersectingBorders(p.Position, state.PublicMatchState.Interactable[targetId].Position, state.Map) {
-		thisChar.CurrentPower -= float32(spell.BaseCost);
-		thisChar.CurrentPower -= float32(spell.CostPercentage) * thisChar.getMaxMana(thisClass);
-		p.getInternalPlayer(state).LastPowerDrainTick = state.PublicMatchState.Tick	
+	if !IntersectingBorders(p.Position, state.Player[targetId].Position, state.Map) {
+		p.CurrentPower -= float32(spell.BaseCost);
+		p.CurrentPower -= float32(spell.CostPercentage) * p.getMaxMana(thisClass);
+		p.LastPowerDrainTick = state.PublicMatchState.Tick	
 
-		fmt.Printf("finish cast spell: %v (mana now: %v)\n", spell.Id, thisChar.CurrentPower)
+		fmt.Printf("finish cast spell: %v (mana now: %v)\n", spell.Id, p.CurrentPower)
 
 		p.GlobalCooldown = spell.GlobalCooldown
 		proj := &PublicMatchState_Projectile{
@@ -541,18 +524,18 @@ func (p *PublicMatchState_Interactable) finishCast(state *MatchState, spell *Gam
 }
 
 //stats
-func (p *PublicMatchState_Interactable) recalcStats(state *MatchState) {
-	p.getInternalPlayer(state).StatModifiers = PlayerStats {}
-	p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier = 1
+func (p *InternalInteractable) recalcStats(state *MatchState) {
+	p.StatModifiers = PlayerStats {}
+	p.StatModifiers.MovementSpeedModifier = 1
 	for _, aura := range p.Auras {
 		effect := state.GameDB.Effects[aura.EffectId]
 		
 		switch effect.Type.(type) {
 		case *GameDB.Effect_Apply_Aura_Mod:
 			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed {
-				p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
+				p.StatModifiers.MovementSpeedModifier *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
 			}
 		}
 	}
-	fmt.Printf("move: %v = %v\n", p.Id, p.getInternalPlayer(state).StatModifiers.MovementSpeedModifier)
+	fmt.Printf("move: %v = %v\n", p.Id, p.StatModifiers.MovementSpeedModifier)
 }

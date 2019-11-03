@@ -6,7 +6,7 @@ import (
 )
 
 func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMatchState_Projectile, tickrate int) {
-	target := state.PublicMatchState.Interactable[projectile.Target]					
+	target := state.Player[projectile.Target]					
 	distance := projectile.Position.distance(target.Position)	
 	direction := PublicMatchState_Vector2Df {
 		X: target.Position.X - projectile.Position.X,
@@ -29,7 +29,7 @@ func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMa
 }
 
 
-func (p PublicMatchState_Projectile) Hit(state *MatchState, target *PublicMatchState_Interactable, projectile *PublicMatchState_Projectile, spell *GameDB.Spell) {
+func (p PublicMatchState_Projectile) Hit(state *MatchState, target *InternalInteractable, projectile *PublicMatchState_Projectile, spell *GameDB.Spell) {
 	for _, effect := range spell.ApplyEffect { 
 		fmt.Printf("Apply Effect on Hit %v\n", effect)
 		if effect.Duration > 0 {

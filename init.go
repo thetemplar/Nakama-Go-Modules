@@ -23,7 +23,7 @@ func init_db() *GameDB.Database {
 		DamageMin:   15,
 		DamageMax:   25,
 		AttackSpeed: 2.8,
-		Range:       2,
+		Range:       5,
 		BlockValue:  0,
 	}
 	GameDatabase.Items[GameDB_Item_Sword.Id] = GameDB_Item_Sword
@@ -36,7 +36,7 @@ func init_db() *GameDB.Database {
 		DamageMin:   25,
 		DamageMax:   35,
 		AttackSpeed: 3.7,
-		Range:       2,
+		Range:       5,
 		BlockValue:  0,
 	}
 	GameDatabase.Items[GameDB_Item_Twohander.Id] = GameDB_Item_Twohander
@@ -49,7 +49,7 @@ func init_db() *GameDB.Database {
 		DamageMin:   15,
 		DamageMax:   20,
 		AttackSpeed: 3,
-		Range:       2,
+		Range:       5,
 		BlockValue:  0,
 	}
 	GameDatabase.Items[GameDB_Item_Staff.Id] = GameDB_Item_Staff

@@ -1,7 +1,6 @@
 syntax = "proto3";
 package main;
 option csharp_namespace = "NakamaMinimalGame.PublicMatchState";
-import "character.proto";
 
 message PublicMatchState {
 	int64 tick = 1;
@@ -103,23 +102,31 @@ message PublicMatchState {
 		int64 character_id = 3;
 		int64 last_processed_client_tick = 4;
 
+		//info
+		string classname = 5;
+		int32 level = 6;
+
+		//stats
+		float current_health = 7;
+		float current_power = 8;
+
 		//vitalities
-		bool invulnerable = 5;
-		Character character = 6;
+		bool invulnerable = 9;
 		
 		//pos
-		Vector2Df position = 7;
-		float rotation = 8;
+		Vector2Df position = 10;
+		float rotation = 11;
 
 		//combat
-		float global_cooldown = 9;
-		string target = 10;
+		float global_cooldown = 12;
+		string target = 13;
 
 		//auras
-		repeated Aura auras = 11;
+		repeated Aura auras = 14;
 
 		//combat
-		bool is_engaged = 12;
+		bool is_engaged = 15;
+
 	}
 
 	message Aura {
