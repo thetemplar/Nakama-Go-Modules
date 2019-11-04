@@ -53,6 +53,19 @@ func init_db() *GameDB.Database {
 		BlockValue:  0,
 	}
 	GameDatabase.Items[GameDB_Item_Staff.Id] = GameDB_Item_Staff
+	GameDB_Item_Shield := &GameDB.Item{
+		Id:          4,
+		Name:        "Shield",
+		Description: "Shield",
+		Type:        GameDB.Item_Type_Weapon_Shield,
+		Slot:        GameDB.Item_Slot_Weapon_OffHand,
+		DamageMin:   0,
+		DamageMax:   0,
+		AttackSpeed: 0,
+		Range:       0,
+		BlockValue:  50,
+	}
+	GameDatabase.Items[GameDB_Item_Shield.Id] = GameDB_Item_Shield
 
 	//EFFECTS
 	GameDB_Effect_Fireball := &GameDB.Effect{
@@ -203,6 +216,75 @@ func init_db() *GameDB.Database {
 		ValueMax:    60,
 	}
 	GameDatabase.Effects[GameDB_Effect_HealingSurge.Id] = GameDB_Effect_HealingSurge
+	GameDB_Effect_BlessedArmor := &GameDB.Effect{
+		Id:          10,
+		Name:        "Blessed Armor",
+		Description: "Blessed Armor",
+		Visible:     true,
+		EffectID:    0,
+		Duration:    5,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Holy,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type: &GameDB.Effect_Apply_Aura_Mod{
+			Stat:  GameDB.Stat_Armor,
+			Value: 50,
+		},
+		ValueMin: 0,
+		ValueMax: 0,
+	}
+	GameDatabase.Effects[GameDB_Effect_BlessedArmor.Id] = GameDB_Effect_BlessedArmor
+	GameDB_Effect_ShieldWalled := &GameDB.Effect{
+		Id:          11,
+		Name:        "Shield Walled",
+		Description: "Shield Walled",
+		Visible:     true,
+		EffectID:    0,
+		Duration:    5,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Physical,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type: &GameDB.Effect_Apply_Aura_Mod{
+			Stat:  GameDB.Stat_Armor,
+			Value: 75,
+		},
+		ValueMin: 0,
+		ValueMax: 0,
+	}
+	GameDatabase.Effects[GameDB_Effect_ShieldWalled.Id] = GameDB_Effect_ShieldWalled
+	GameDB_Effect_MightyStrike := &GameDB.Effect{
+		Id:          12,
+		Name:        "Mighty Strike",
+		Description: "Mighty Strike",
+		Visible:     false,
+		EffectID:    0,
+		Duration:    5,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Physical,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type:        &GameDB.Effect_Autoattack{},
+		ValueMin:    20,
+		ValueMax:    30,
+	}
+	GameDatabase.Effects[GameDB_Effect_MightyStrike.Id] = GameDB_Effect_MightyStrike
+	GameDB_Effect_FireZone := &GameDB.Effect{
+		Id:          13,
+		Name:        "Fire Zone",
+		Description: "Fire Zone",
+		Visible:     false,
+		EffectID:    0,
+		Duration:    0,
+		Dispellable: false,
+		School:      GameDB.Spell_SchoolType_Fire,
+		Mechanic:    GameDB.Spell_Mechanic_None,
+		Type: &GameDB.Effect_Persistent_Area_Aura{
+			Intervall: 1,
+			Radius:    3,
+		},
+		ValueMin: 25,
+		ValueMax: 30,
+	}
+	GameDatabase.Effects[GameDB_Effect_FireZone.Id] = GameDB_Effect_FireZone
 
 	//PROCS
 
@@ -387,12 +469,132 @@ func init_db() *GameDB.Database {
 		ApplyProc:          []*GameDB.Proc{},
 	}
 	GameDatabase.Spells[GameDB_Spell_HealingSurge.Id] = GameDB_Spell_HealingSurge
+	GameDB_Spell_BlessingArmor := &GameDB.Spell{
+		Id:                 7,
+		Name:               "Blessing Armor",
+		Description:        "Blessing Armor",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           30,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_Instant,
+		BaseCost:           15,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           0,
+		CastTimeChanneled:  0,
+		Range:              50,
+		FacingFront:        false,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_Ally,
+		InterruptedBy:      GameDB.Interrupt_Type_OnMovement,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[10]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_BlessingArmor.Id] = GameDB_Spell_BlessingArmor
+	GameDB_Spell_ShieldWall := &GameDB.Spell{
+		Id:                 8,
+		Name:               "Shield Wall",
+		Description:        "Shield Wall",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           20,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_Instant,
+		BaseCost:           0,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           0,
+		CastTimeChanneled:  0,
+		Range:              0,
+		FacingFront:        false,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_Self,
+		InterruptedBy:      GameDB.Interrupt_Type_None,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[11]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_ShieldWall.Id] = GameDB_Spell_ShieldWall
+	GameDB_Spell_MightyStrike := &GameDB.Spell{
+		Id:                 9,
+		Name:               "Mighty Strike",
+		Description:        "Mighty Strike",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           5,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_WeaponSwing,
+		BaseCost:           5,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           0,
+		CastTimeChanneled:  0,
+		Range:              0,
+		FacingFront:        true,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_Enemy,
+		InterruptedBy:      GameDB.Interrupt_Type_None,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[12]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_MightyStrike.Id] = GameDB_Spell_MightyStrike
+	GameDB_Spell_FireZone := &GameDB.Spell{
+		Id:                 10,
+		Name:               "Fire Zone",
+		Description:        "Fire Zone",
+		Visible:            true,
+		ThreadModifier:     1,
+		Cooldown:           10,
+		GlobalCooldown:     1.5,
+		IgnoresGCD:         false,
+		IgnoresWeaponswing: false,
+		MissileID:          0,
+		EffectID:           0,
+		IconID:             0,
+		Speed:              0,
+		Application_Type:   GameDB.Spell_Application_Type_AoE,
+		BaseCost:           0,
+		CostPerSec:         0,
+		CostPercentage:     0,
+		CastTime:           0,
+		CastTimeChanneled:  0,
+		Range:              0,
+		FacingFront:        false,
+		TargetAuraRequired: 0,
+		CasterAuraRequired: 0,
+		Target_Type:        GameDB.Spell_Target_Type_AoE,
+		InterruptedBy:      GameDB.Interrupt_Type_None,
+		ApplyEffect:        []*GameDB.Effect{GameDatabase.Effects[13]},
+		ApplyProc:          []*GameDB.Proc{},
+	}
+	GameDatabase.Spells[GameDB_Spell_FireZone.Id] = GameDB_Spell_FireZone
 
 	//CLASSES
 	GameDB_Class_Mage := &GameDB.Class{
 		Name:                    "Mage",
 		Description:             "Mage",
-		Spells:                  []*GameDB.Spell{GameDatabase.Spells[1], GameDatabase.Spells[2], GameDatabase.Spells[3], GameDatabase.Spells[5], GameDatabase.Spells[6]},
+		Spells:                  []*GameDB.Spell{GameDatabase.Spells[1], GameDatabase.Spells[2], GameDatabase.Spells[3], GameDatabase.Spells[5], GameDatabase.Spells[6], GameDatabase.Spells[7], GameDatabase.Spells[10]},
 		Mainhand:                GameDatabase.Items[3],
 		Offhand:                 nil,
 		Items:                   []*GameDB.Item{},
@@ -425,7 +627,7 @@ func init_db() *GameDB.Database {
 	GameDB_Class_Ogre := &GameDB.Class{
 		Name:                    "Ogre",
 		Description:             "Ogre",
-		Spells:                  []*GameDB.Spell{GameDatabase.Spells[4]},
+		Spells:                  []*GameDB.Spell{GameDatabase.Spells[4], GameDatabase.Spells[10]},
 		Mainhand:                GameDatabase.Items[2],
 		Offhand:                 nil,
 		Items:                   []*GameDB.Item{},
@@ -455,6 +657,39 @@ func init_db() *GameDB.Database {
 		MovementSpeed:           45,
 	}
 	GameDatabase.Classes[GameDB_Class_Ogre.Name] = GameDB_Class_Ogre
+	GameDB_Class_Warrior := &GameDB.Class{
+		Name:                    "Warrior",
+		Description:             "Warrior",
+		Spells:                  []*GameDB.Spell{GameDatabase.Spells[8], GameDatabase.Spells[9]},
+		Mainhand:                GameDatabase.Items[1],
+		Offhand:                 GameDatabase.Items[4],
+		Items:                   []*GameDB.Item{},
+		Procs:                   []*GameDB.Proc{},
+		BaseStamina:             20,
+		GainStamina:             2,
+		FactorHPRegen:           2,
+		FactorArmor:             1.2,
+		FactorSpellResist:       2,
+		FactorBlock:             2,
+		BaseStrength:            20,
+		GainStrength:            2,
+		FactorStrengthAP:        2,
+		FactorParry:             2,
+		BaseAgility:             15,
+		GainAgility:             1,
+		FactorAgilityAP:         1,
+		FactorMeeleAttackSpeed:  1,
+		FactorMeeleCriticalHits: 1.5,
+		FactorDodge:             1.5,
+		BaseIntellect:           1,
+		GainIntellect:           0.5,
+		FactorManaRegen:         0.3,
+		FactorSpellAP:           0.1,
+		FactorSpellAttackSpeed:  0.1,
+		FactorSpellCriticalHits: 0.1,
+		MovementSpeed:           70,
+	}
+	GameDatabase.Classes[GameDB_Class_Warrior.Name] = GameDB_Class_Warrior
 
 	return GameDatabase
 }
