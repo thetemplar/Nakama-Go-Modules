@@ -181,14 +181,14 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 		}
 		
 		//finish swing mainhand 
-		if player.Autoattacking && player.AutoattackMainhandTickEnd <= tick && player.AutoattackMainhandTickEnd > 0{
+		if player.Autoattacking && player.AutoattackMainhandTickEnd <= tick && player.AutoattackMainhandTickEnd > 0 && player.Target == player.AutoattackTargeted{
 			player.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_MainHand, player.AutoattackTargeted)
 			
 			//queue next swing!
 			player.AutoattackMainhandTickEnd = int64(state.(*MatchState).GameDB.Classes[player.Classname].Mainhand.AttackSpeed * player.getMeeleAttackSpeed(state.(*MatchState).GameDB.Classes[player.Classname]) * float32(tickrate)) + tick
 		}
 		//finish swing offhand
-		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0{
+		if player.Autoattacking && player.AutoattackOffhandTickEnd <= tick && player.AutoattackOffhandTickEnd > 0 && player.Target == player.AutoattackTargeted {
 			player.finishAutoattack(state.(*MatchState), GameDB.Item_Slot_Weapon_OffHand, player.AutoattackTargeted)
 			
 			//queue next swing!
