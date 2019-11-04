@@ -79,6 +79,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Classname: "Ogre",
 		CurrentHealth: 100,
 		CurrentPower: 1,
+		Team: 0,
 	}
 	state.PublicMatchState.Interactable[enemy.Id] = enemy
 
@@ -86,6 +87,8 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		PublicMatchState_Interactable: enemy,
 		Presence: nil,
 		StatModifiers: PlayerStats {},
+		Cooldowns: make(map[int64]int64),
+		npcState: &NpcState_Ogre{},
 	}
 	enemyInternal.Act = Act_Ogre
 	state.Player[enemyInternal.Id] = enemyInternal
@@ -120,6 +123,7 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 		Classname: classname,
 		CurrentHealth: 100,
 		CurrentPower: 100,
+		Team: 1, //int32(state.PublicMatchState.Tick),
 	}
 	
 	state.Player[userId] = &InternalInteractable{
@@ -127,6 +131,7 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 		Presence: *state.PresenceList[userId],	
 		TriangleIndex: -1,
 		StatModifiers: PlayerStats {},
+		Cooldowns: make(map[int64]int64),
 	}
 	state.Player[userId].recalcStats(state)
 	fmt.Printf("new character %v spawn @ %v\n", userId, state.Player[userId].Position)
@@ -373,7 +378,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	//state.(*MatchState).OldMatchState[tick] = historyCopy
 
 	//end if no ones sending smth (all dc'ed)
-	if false {
+	if true {
 		if len(messages) == 0 {
 			state.(*MatchState).EmptyCounter = state.(*MatchState).EmptyCounter + 1;
 		} else {
@@ -386,7 +391,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	}
 
 	//calc loop runtime
-	if false {
+	if true {
 		state.(*MatchState).runtimeSet[state.(*MatchState).runtimeSetIndex] = int64(time.Since(start))
 		avg := int64(0)
 		for _, time := range state.(*MatchState).runtimeSet {
@@ -401,6 +406,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 	return state
 }
 
+//MatchTerminate is called when Termininated
 func (m *Match) MatchTerminate(ctx context.Context, logger runtime.Logger, db *sql.DB, nk runtime.NakamaModule, dispatcher runtime.MatchDispatcher, tick int64, state interface{}, graceSeconds int) interface{} {
 	if state.(*MatchState).Debug {
 		logger.Printf("match terminate match_id %v tick %v", ctx.Value(runtime.RUNTIME_CTX_MATCH_ID), tick)

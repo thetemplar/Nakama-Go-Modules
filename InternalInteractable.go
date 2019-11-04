@@ -8,6 +8,7 @@ import (
 	"Nakama-Go-Modules/GameDB"
 )
 
+//InternalInteractable is an extended struct from the protobuf PublicMatchState_Interactable struct
 type InternalInteractable struct {
 	*PublicMatchState_Interactable
 
@@ -47,7 +48,10 @@ type InternalInteractable struct {
 	Act Act
 
 	//cooldowns	
-	Cooldowns     				map[string]*int64
+	Cooldowns     				map[int64]int64
+	
+	//npc
+	npcState 					interface{}
 }
 
 type Act func(state *MatchState, p *InternalInteractable)
@@ -431,6 +435,9 @@ func (p *InternalInteractable) containsEffectId(id int64, creator string) int64 
 
 //autoattack
 func (p *InternalInteractable) startAutoattack(state *MatchState, attacktype Client_Message_Client_Autoattack_Type) {
+	if p.Autoattacking == true && p.AutoattackTargeted == p.Target {
+		return
+	}
 	thisClass := state.GameDB.Classes[p.Classname]
 
 	failedMessage := ""
@@ -441,7 +448,7 @@ func (p *InternalInteractable) startAutoattack(state *MatchState, attacktype Cli
 	}
 
 	targetId := ""
-	if p.Target == "" {
+	if p.Target == "" || p.Target == "Player" {
 		failedMessage = "No Target!"
 	} else {		
 		targetId = p.Target
@@ -525,7 +532,7 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 	thisClass := state.GameDB.Classes[p.Classname]
 	failedMessage := ""
 
-	if (p.GlobalCooldown > 0 || spell.IgnoresGCD == true) || p.CastingSpellId > 0 {
+	if (p.GlobalCooldown > 0 || spell.IgnoresGCD == true) || p.CastingSpellId > 0 || p.Cooldowns[spell.Id] > state.PublicMatchState.Tick {
 		failedMessage = "Cannot do that now!"
 	}
 	
@@ -535,8 +542,11 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 	}
 
 	targetId := "" 
-	if (spell.Target_Type == GameDB.Spell_Target_Type_Self) {
+	if (spell.Target_Type == GameDB.Spell_Target_Type_Self || p.Target == "Player") {
 		targetId = p.Id
+		if spell.Target_Type != GameDB.Spell_Target_Type_Ally {
+			failedMessage = "Not an Ally!"
+		}
 	} else if (spell.Target_Type == GameDB.Spell_Target_Type_None) {
 		//nothing so far
 	} else {
@@ -544,7 +554,7 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 			failedMessage = "No Target!"
 		} else {
 			targetId = p.Target
-			target := state.Player[targetId]
+			target := state.Player[targetId]	
 			distance := p.Position.distance(target.Position)	
 			
 			switch spell.Target_Type {
@@ -573,21 +583,22 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 			}
 		}
 
-		if failedMessage != "" {
-			clEntry := &PublicMatchState_CombatLogEntry {
-				Timestamp: state.PublicMatchState.Tick,
-				SourceId: p.Id,
-				SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{spell.Id},
-				Source: PublicMatchState_CombatLogEntry_Spell,
-				Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
-					Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
-					FailedMessage: failedMessage,
-				}},
-			}
-			state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+	}
 
-			return
+	if failedMessage != "" {
+		clEntry := &PublicMatchState_CombatLogEntry {
+			Timestamp: state.PublicMatchState.Tick,
+			SourceId: p.Id,
+			SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{spell.Id},
+			Source: PublicMatchState_CombatLogEntry_Spell,
+			Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
+				Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
+				FailedMessage: failedMessage,
+			}},
 		}
+		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
+
+		return
 	}
 
 	if spell.IgnoresWeaponswing == false {
@@ -625,6 +636,8 @@ func (p *InternalInteractable) cancelCast(state *MatchState) {
 
 func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell, targetId string) {
 	thisClass := state.GameDB.Classes[p.Classname]
+	p.Cooldowns[spell.Id] = state.PublicMatchState.Tick + int64(spell.Cooldown * float32(state.TickRate))
+
 
 	if !IntersectingBorders(p.Position, state.Player[targetId].Position, state.Map) {
 		p.CurrentPower -= float32(spell.BaseCost);
