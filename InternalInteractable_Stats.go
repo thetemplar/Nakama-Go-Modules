@@ -4,6 +4,23 @@ import (
 	"Nakama-Go-Modules/GameDB"
 )
 
+//recalc
+func (p *InternalInteractable) recalcStats(state *MatchState) {
+	p.StatModifiers = PlayerStats {}
+	p.StatModifiers.MovementSpeedModifier = 1
+	for _, aura := range p.Auras {
+		effect := state.GameDB.Effects[aura.EffectId]
+		
+		switch effect.Type.(type) {
+		case *GameDB.Effect_Apply_Aura_Mod:
+			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed {
+				p.StatModifiers.MovementSpeedModifier *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
+			}
+		}
+	}
+}
+
+
 //base stats
 func (p *InternalInteractable)  getCurrentStamina(dbc *GameDB.Class) float32 {
 	return dbc.BaseStamina + dbc.GainStamina * float32(p.Level)

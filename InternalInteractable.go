@@ -380,7 +380,6 @@ func (p *InternalInteractable) applyAbilityDamage(state *MatchState, effect *Gam
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 }
 
-
 func (p *InternalInteractable) applyAbilityHeal(state *MatchState, effect *GameDB.Effect, creator string) {
 	source :=  state.Player[creator]
 	sourceClass := state.GameDB.Classes[p.Classname]
@@ -441,23 +440,26 @@ func (p *InternalInteractable) startAutoattack(state *MatchState, attacktype Cli
 		
 	}
 
+	targetId := ""
 	if p.Target == "" {
 		failedMessage = "No Target!"
-	}
+	} else {		
+		targetId = p.Target
+		target := state.Player[targetId]
+		distance := p.Position.distance(target.Position)	
 
-	targetId := p.Target
-	target := state.Player[targetId]
-	distance := p.Position.distance(target.Position)	
-	
-	
-	
-	if distance > thisClass.Mainhand.Range {
-		failedMessage = "Out of Range!"
-	}
+		if target.Team == p.Team {
+			failedMessage = "Not an Enemy!"
+		}	
+		
+		if distance > thisClass.Mainhand.Range {
+			failedMessage = "Out of Range!"
+		}
 
-	if distance > 1 {
-		if IntersectingBorders(p.Position, target.Position, state.Map) {
-			failedMessage = "Not in Line of Sight!"
+		if distance > 1 {
+			if IntersectingBorders(p.Position, target.Position, state.Map) {
+				failedMessage = "Not in Line of Sight!"
+			}
 		}
 	}
 
@@ -543,19 +545,30 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell)
 		} else {
 			targetId = p.Target
 			target := state.Player[targetId]
-			distance := p.Position.distance(target.Position)		
+			distance := p.Position.distance(target.Position)	
+			
+			switch spell.Target_Type {
+			case GameDB.Spell_Target_Type_Ally:
+				if target.Team != p.Team {
+					failedMessage = "Not an Ally!"
+				}
+			case GameDB.Spell_Target_Type_Enemy:
+				if target.Team == p.Team {
+					failedMessage = "Not an Enemy!"
+				}
+			}
 			
 			behind := target.Position.isFacedBy(p.Position, p.Rotation)
-			if spell.FacingFront && !behind {
+			if spell.FacingFront && !behind && failedMessage == "" {
 				failedMessage = "Is not facing target!"
 			}
 	
-			if distance > spell.Range {	
+			if distance > spell.Range && failedMessage == "" {	
 				fmt.Printf("Out of Range: %v > %v\n", distance, spell.Range)
 				failedMessage = "Out of Range!"
 			}
 	
-			if IntersectingBorders(p.Position, target.Position, state.Map) {
+			if IntersectingBorders(p.Position, target.Position, state.Map) && failedMessage == "" {
 				failedMessage = "Not in Line of Sight!"
 			}
 		}
@@ -660,21 +673,4 @@ func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell
 		}
 		state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 	}		
-}
-
-//stats
-func (p *InternalInteractable) recalcStats(state *MatchState) {
-	p.StatModifiers = PlayerStats {}
-	p.StatModifiers.MovementSpeedModifier = 1
-	for _, aura := range p.Auras {
-		effect := state.GameDB.Effects[aura.EffectId]
-		
-		switch effect.Type.(type) {
-		case *GameDB.Effect_Apply_Aura_Mod:
-			if effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Stat == GameDB.Stat_Speed {
-				p.StatModifiers.MovementSpeedModifier *= effect.Type.(*GameDB.Effect_Apply_Aura_Mod).Value
-			}
-		}
-	}
-	fmt.Printf("move: %v = %v\n", p.Id, p.StatModifiers.MovementSpeedModifier)
 }

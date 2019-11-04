@@ -127,6 +127,7 @@ message PublicMatchState {
 
 		//combat
 		bool is_engaged = 15;
+		int32 team = 16;
 
 	}
 
