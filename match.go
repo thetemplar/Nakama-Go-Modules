@@ -51,6 +51,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		PublicMatchState : PublicMatchState{
 			Interactable: make(map[string]*PublicMatchState_Interactable),
 			Projectile: make(map[string]*PublicMatchState_Projectile),
+			Area: make(map[string]*PublicMatchState_Area),
 			Combatlog: make([]*PublicMatchState_CombatLogEntry, 0),
 		},
 
@@ -71,7 +72,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		Type: PublicMatchState_Interactable_NPC,
 		CharacterId: 2,
 		//Position: currentPlayerPublic.Position,
-		Position: &PublicMatchState_Vector2Df {
+		Position: &Vector2Df {
 			X: 15,
 			Y: 15,
 		},
@@ -116,7 +117,7 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 	state.PublicMatchState.Interactable[userId] = &PublicMatchState_Interactable{
 		Id: userId,
 		Type: PublicMatchState_Interactable_Player,
-		Position: &PublicMatchState_Vector2Df { 
+		Position: &Vector2Df { 
 			X: 0.1,
 			Y: 0.1,
 		},
@@ -236,7 +237,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			//is the spell in his spellbook?
 			for _, spell := range state.(*MatchState).GameDB.Classes[player.Classname].Spells {
 				if (spell.Id == msg.GetCast().SpellId) {
-					player.startCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[msg.GetCast().SpellId])
+					player.startCast(state.(*MatchState), state.(*MatchState).GameDB.Spells[msg.GetCast().SpellId], msg.GetCast().GetPosition())
 					break
 				}
 			}
@@ -255,7 +256,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			player.LastMovement = msg.GetMove()
 			player.stopAutoattackTimer();
 			player.stopCastTimer();
-			player.performMovement(state.(*MatchState), PublicMatchState_Vector2Df { X: msg.GetMove().XAxis, Y: msg.GetMove().YAxis }, msg.GetMove().Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
+			player.performMovement(state.(*MatchState), Vector2Df { X: msg.GetMove().XAxis, Y: msg.GetMove().YAxis }, msg.GetMove().Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
 		case *Client_Message_SelectChar:
 			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname)
 			player = state.(*MatchState).Player[message.GetUserId()];
@@ -273,7 +274,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				player.MoveMessageCountThisFrame = 1
 				logger.Printf("2nd missing Package from player %v in a row, inserting last known package.", player.Id)
 		
-				player.performMovement(state.(*MatchState), PublicMatchState_Vector2Df { X: player.LastMovement.XAxis, Y: player.LastMovement.YAxis }, player.LastMovement.Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
+				player.performMovement(state.(*MatchState), Vector2Df { X: player.LastMovement.XAxis, Y: player.LastMovement.YAxis }, player.LastMovement.Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
 			}
 		}
 	}
@@ -336,6 +337,37 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			continue
 		}
 		projectile.Run(state.(*MatchState), projectile, tickrate)	
+	}	
+	for _, area := range state.(*MatchState).PublicMatchState.Area {
+		if area == nil || area.CreatedAtTick == tick {
+			continue
+		}
+		//is anyone in area?
+		if int64(float32(area.AreaTickCount + 1) * state.(*MatchState).GameDB.Effects[area.EffectId].Type.(*GameDB.Effect_Persistent_Area_Aura).Intervall * float32(tickrate)) + area.CreatedAtTick < tick {	
+			for _, player := range state.(*MatchState).Player {
+				if player.Position.distance(area.Position) <= state.(*MatchState).GameDB.Effects[area.EffectId].Type.(*GameDB.Effect_Persistent_Area_Aura).Radius {
+					//hit him
+					player.applyAbilityDamage(state.(*MatchState), state.(*MatchState).GameDB.Effects[area.EffectId], area.Creator)
+				}
+			}
+			area.AreaTickCount++	
+		}
+		//is it depleted?
+		if int64(state.(*MatchState).GameDB.Effects[area.EffectId].Duration * float32(tickrate)) + area.CreatedAtTick < tick {
+			clEntry := &PublicMatchState_CombatLogEntry {
+				Timestamp: tick,
+				SourceId: area.Creator,
+				SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{area.EffectId},
+				Source: PublicMatchState_CombatLogEntry_AoE,
+				Type: &PublicMatchState_CombatLogEntry_Area{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Area{
+					Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Area_Depleted,
+				}},
+			}
+			state.(*MatchState).PublicMatchState.Combatlog = append(state.(*MatchState).PublicMatchState.Combatlog, clEntry)
+
+			fmt.Printf("area run off > %v\n", area)
+			delete(state.(*MatchState).PublicMatchState.Area, area.Id)
+		}
 	}
 	for _, player := range state.(*MatchState).Player {
 		if player.Presence != nil || !player.IsEngaged || player.CurrentHealth <= 0 {

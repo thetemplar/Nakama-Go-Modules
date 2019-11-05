@@ -6,7 +6,7 @@ import (
 func (p PublicMatchState_Projectile) Run(state *MatchState, projectile *PublicMatchState_Projectile, tickrate int) {
 	target := state.Player[projectile.Target]					
 	distance := projectile.Position.distance(target.Position)	
-	direction := PublicMatchState_Vector2Df {
+	direction := Vector2Df {
 		X: target.Position.X - projectile.Position.X,
 		Y: target.Position.Y - projectile.Position.Y,
 	}

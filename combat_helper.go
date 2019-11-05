@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"Nakama-Go-Modules/GameDB"
 )
 
@@ -60,4 +61,22 @@ func SpellHit(state *MatchState, target *InternalInteractable, source string, sp
 		}
 	}
 
+}
+
+//AoE
+func CreateAoEArea(state *MatchState, spell *GameDB.Spell, pos *Vector2Df, creator string) {
+	for _, effect := range spell.ApplyEffect { 
+		fmt.Printf("Apply Effect on AoE-Area %v\n", effect)
+		area := &PublicMatchState_Area{
+			Id: "a_" + strconv.FormatInt(state.ProjectileCounter, 16),
+			EffectId: effect.Id,
+			CreatedAtTick: state.PublicMatchState.Tick,
+			Creator: creator,
+			Position: pos,
+			AreaTickCount: 0,
+		}
+		state.ProjectileCounter++
+
+		state.PublicMatchState.Area[area.Id] = area
+	}
 }

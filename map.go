@@ -10,15 +10,15 @@ type Map struct {
 }
 
 type Edge struct {
-	A PublicMatchState_Vector2Df
-	B PublicMatchState_Vector2Df
+	A Vector2Df
+	B Vector2Df
 }
 
 type Triangle struct {
-	A PublicMatchState_Vector2Df
-	B PublicMatchState_Vector2Df
-	C PublicMatchState_Vector2Df
-	W PublicMatchState_Vector2Df
+	A Vector2Df
+	B Vector2Df
+	C Vector2Df
+	W Vector2Df
 }
 
 
@@ -27,7 +27,7 @@ type NextTriangles struct{
 	Index 	 int
 }
 
-func (m *Map) getNearest(v PublicMatchState_Vector2Df, length int) []NextTriangles {
+func (m *Map) getNearest(v Vector2Df, length int) []NextTriangles {
 	res := make([]NextTriangles, len(m.Triangles))
 	i := 0
 	for _, triangle := range m.Triangles {
@@ -41,7 +41,7 @@ func (m *Map) getNearest(v PublicMatchState_Vector2Df, length int) []NextTriangl
 	return res[:length]
 }
 
-func (t Triangle) isInTriangle(v *PublicMatchState_Vector2Df) (bool, float32, float32, float32) {
+func (t Triangle) isInTriangle(v *Vector2Df) (bool, float32, float32, float32) {
 	// Compute vectors        
 	v0_x := t.C.X - t.A.X  
 	v0_y := t.C.Y - t.A.Y

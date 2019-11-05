@@ -16,7 +16,7 @@ func Act_Ogre(state *MatchState, self *InternalInteractable) {
 	target := state.Player[self.Target]
 
 	
-	direction := PublicMatchState_Vector2Df {
+	direction := Vector2Df {
 		X: target.Position.X - self.Position.X,
 		Y: target.Position.Y - self.Position.Y,
 	}
@@ -29,7 +29,7 @@ func Act_Ogre(state *MatchState, self *InternalInteractable) {
 
 	if self.CurrentHealth < 100 && !self.npcState.(*NpcState_Ogre).enraged {
 		enrage := state.GameDB.SearchSpellByName("Enrage");
-		self.startCast(state, enrage)
+		self.startCast(state, enrage, &Vector2Df{})
 		
 		self.npcState.(*NpcState_Ogre).enraged = true
 	}

@@ -8,6 +8,7 @@ message PublicMatchState {
 	repeated CombatLogEntry combatlog = 2;
 	map<string, Interactable> interactable = 3;
 	map<string, Projectile> projectile = 4;
+	map<string, Area> area = 5;
   
 	//https://wow.gamepedia.com/COMBAT_LOG_EVENT_UNFILTERED
 	message CombatLogEntry {
@@ -21,21 +22,23 @@ message PublicMatchState {
 			Range = 1;
 			Spell = 2;
 			Periodic = 3;
-			Environment = 4;
+			AoE = 4;
+			Environment = 5;
 		}
 		oneof source_spell_effect_id {
-			int64 source_spell_id = 5;
-			int64 source_effect_id = 6;
+			int64 source_spell_id = 6;
+			int64 source_effect_id = 7;
 		}
 
 		oneof type {
-			CombatLogEntry_Damage damage = 7;
-			CombatLogEntry_Missed missed_type = 8;
-			CombatLogEntry_Heal heal = 9;
-			CombatLogEntry_Interrupted interrupted = 10;
-			CombatLogEntry_Aura aura = 11;
-			CombatLogEntry_Cast cast = 12;
-			string system_message = 13;
+			CombatLogEntry_Damage damage = 8;
+			CombatLogEntry_Missed missed_type = 9;
+			CombatLogEntry_Heal heal = 10;
+			CombatLogEntry_Interrupted interrupted = 11;
+			CombatLogEntry_Aura aura = 12;
+			CombatLogEntry_Area area = 13;
+			CombatLogEntry_Cast cast = 14;
+			string system_message = 15;
 		}
 
 		message CombatLogEntry_Damage {
@@ -67,6 +70,13 @@ message PublicMatchState {
 				Removed = 1;
 				Refreshed = 2;
 				Depleted = 3;
+			}
+		}
+		message CombatLogEntry_Area {
+			CombatLogEntry_Area_Event event = 1;
+			enum CombatLogEntry_Area_Event {
+				Created = 0;
+				Depleted = 1;
 			}
 		}
 		message CombatLogEntry_Autoattack {
@@ -151,10 +161,15 @@ message PublicMatchState {
 
 		float speed = 8;
 	}
-		
-	message Vector2Df {
-		float x = 1;
-		float y = 2;
+
+	message Area {
+		string id = 1;
+		int64 effect_id = 2;
+		int64 created_at_tick = 3;
+		string creator = 4;
+
+		Vector2Df position = 5;
+		int32 area_tick_count = 6;
 	}
 }
 
@@ -178,13 +193,12 @@ message Client_Message {
 		string target = 3;
 	}
 
-	//opId = 1
 	message Client_Cast {
 		int64 client_tick = 1;
 		int64 spell_id = 2;
+		Vector2Df position = 3;
 	}
 
-	//opId = 2
 	message Client_Autoattack {
 		int64 client_tick = 2;
 		enum Type {
@@ -195,11 +209,9 @@ message Client_Message {
 		Type attacktype = 3;
 	}
 
-	//opId = 3
 	message Client_CancelAttack {
 	}
 
-	//opId = 4
 	message Client_Movement{
 		int64 client_tick = 1;
 		bool absolute_coordinates = 2;
@@ -208,9 +220,13 @@ message Client_Message {
 		float rotation = 5;
 	}
 
-	//opId = 100
 	message Client_SelectCharacter {
 		string classname = 1;
 	}
 
+}
+		
+message Vector2Df {
+	float x = 1;
+	float y = 2;
 }
