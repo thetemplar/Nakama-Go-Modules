@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"math"
-	"Nakama-Go-Modules/GameDB"
+	"Nakama-Go-Modules/GameDB"	
 )
 
 //InternalInteractable is an extended struct from the protobuf PublicMatchState_Interactable struct
@@ -141,7 +141,7 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 
 	//am i still in my triangle?	
 	if p.TriangleIndex >= 0 {
-		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].isInTriangle(p.Position)
+		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].IsInTriangle(p.Position.X, p.Position.Y)
 		if !isItIn {
 			p.TriangleIndex = -1
 		}
@@ -152,7 +152,7 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 		//find triangle I am in
 		found := false
 		for i, triangle := range state.Map.Triangles {
-			isItIn, _, _, _ := triangle.isInTriangle(p.Position)
+			isItIn, _, _, _ := triangle.IsInTriangle(p.Position.X, p.Position.Y)
 			if isItIn {
 				p.TriangleIndex = int64(i)
 				found = true
@@ -171,6 +171,9 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 func (p *InternalInteractable) rotateTowardsTarget(targetPos *Vector2Df) {
 	p.Rotation = float32(math.Atan2(float64(targetPos.X), float64(targetPos.Y)) * 57.2957795131);
 }
+
+//pathfinding
+
 
 //regen
 func (p *InternalInteractable) regen(state *MatchState, hpPercent, powerPercent float64) {	

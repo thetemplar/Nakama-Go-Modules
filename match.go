@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"math"
 	"Nakama-Go-Modules/GameDB"
+	"Nakama-Go-Modules/graphmap"
 )
 
 
@@ -26,7 +27,7 @@ type MatchState struct {
 	NpcCounter			int64
 	
 	GameDB				*GameDB.Database
-	Map					*Map
+	Map					*graphmap.Map
 	
 	runtimeSet			[]int64
 	runtimeSetIndex		int

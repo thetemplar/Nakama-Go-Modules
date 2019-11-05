@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"Nakama-Go-Modules/graphmap"
 )
 
 func (v Vector2Df) rotate(degrees float32) Vector2Df {
@@ -80,9 +81,9 @@ func Intersection (p0, p1, p2, p3 *Vector2Df) (bool, Vector2Df) {
 }
 
 
-func IntersectingBorders (start *Vector2Df, target *Vector2Df, m *Map) (bool) {
+func IntersectingBorders (start *Vector2Df, target *Vector2Df, m *graphmap.Map) (bool) {
 	for _, b := range m.Borders {
-		hasIntersection, _ := Intersection(start, target, &b.A, &b.B)
+		hasIntersection, _ := Intersection(start, target, &Vector2Df{X: b.A.X, Y:b.A.Y}, &Vector2Df{X: b.B.X, Y:b.B.Y})
 		if hasIntersection {
 			return true
 		}

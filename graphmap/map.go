@@ -1,8 +1,14 @@
-package main
+package graphmap
 
 import (
 	"github.com/bradfitz/slice"
+	"math"
 )
+
+type Vector struct {
+	X 			float32
+	Y 			float32
+}
 
 type Map struct {
 	Borders		[]Edge
@@ -10,15 +16,45 @@ type Map struct {
 }
 
 type Edge struct {
-	A Vector2Df
-	B Vector2Df
+	A 			Vector
+	B 			Vector
 }
 
 type Triangle struct {
-	A Vector2Df
-	B Vector2Df
-	C Vector2Df
-	W Vector2Df
+	A 			Vector
+	B 			Vector
+	C 			Vector
+	W 			Vector
+	
+	Id       	int32
+	Neighbors 	map[*Triangle]int // maps the neighbor node to the weight of the connection to it
+}
+
+
+func (v Vector) distance(t *Vector) float32 {
+	return float32(math.Sqrt(math.Pow(float64(t.X - v.X), 2) + math.Pow(float64(t.Y - v.Y), 2)))
+}
+
+// Returns the map of neighbors.
+func (n *Triangle) GetNeighbors() map[*Triangle]int {
+	if n == nil {
+		return nil
+	}
+	
+	Neighbors := n.Neighbors
+
+	return Neighbors
+}
+
+// Returns the Nodees key.
+func (n *Triangle) Key() int32 {
+	if n == nil {
+		return -1
+	}
+
+	key := n.Id
+	
+	return key
 }
 
 
@@ -27,7 +63,7 @@ type NextTriangles struct{
 	Index 	 int
 }
 
-func (m *Map) getNearest(v Vector2Df, length int) []NextTriangles {
+func (m *Map) getNearest(v Vector, length int) []NextTriangles {
 	res := make([]NextTriangles, len(m.Triangles))
 	i := 0
 	for _, triangle := range m.Triangles {
@@ -41,14 +77,14 @@ func (m *Map) getNearest(v Vector2Df, length int) []NextTriangles {
 	return res[:length]
 }
 
-func (t Triangle) isInTriangle(v *Vector2Df) (bool, float32, float32, float32) {
+func (t Triangle) IsInTriangle(x, y float32) (bool, float32, float32, float32) {
 	// Compute vectors        
 	v0_x := t.C.X - t.A.X  
 	v0_y := t.C.Y - t.A.Y
 	v1_x := t.B.X - t.A.X
 	v1_y := t.B.Y - t.A.Y
-	v2_x := v.X   - t.A.X
-	v2_y := v.Y   - t.A.Y
+	v2_x := x     - t.A.X
+	v2_y := y     - t.A.Y
 
 	// Compute dot products
 	dot00 := v0_x * v0_x + v0_y * v0_y
