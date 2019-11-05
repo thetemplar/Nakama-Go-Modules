@@ -493,7 +493,7 @@ func (p *InternalInteractable) startAutoattack(state *MatchState, attacktype Cli
 	}
 
 	targetId := ""
-	if p.Target == "" || p.Target == "Player" {
+	if p.Target == "" || p.Target == "Player" || p.Target == p.Id {
 		failedMessage = "No Target!"
 	} else {		
 		targetId = p.Target
@@ -587,7 +587,7 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell,
 	}
 
 	targetId := "" 
-	if (spell.Target_Type == GameDB.Spell_Target_Type_Self || p.Target == "Player") {
+	if (spell.Target_Type == GameDB.Spell_Target_Type_Self || p.Target == "Player" || p.Target == p.Id) {
 		targetId = p.Id
 		if spell.Target_Type != GameDB.Spell_Target_Type_Ally {
 			failedMessage = "Not an Ally!"
