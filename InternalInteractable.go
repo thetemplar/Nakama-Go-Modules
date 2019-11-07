@@ -587,7 +587,7 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell,
 	}
 
 	targetId := "" 
-	if (spell.Target_Type == GameDB.Spell_Target_Type_Self || p.Target == "Player" || p.Target == p.Id) {
+	if (spell.Target_Type == GameDB.Spell_Target_Type_Self || p.Target == "Player" || p.Target == p.Id) && spell.Target_Type != GameDB.Spell_Target_Type_AoE{
 		targetId = p.Id
 		if spell.Target_Type != GameDB.Spell_Target_Type_Ally {
 			failedMessage = "Not an Ally!"
@@ -747,7 +747,8 @@ func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell
 		case GameDB.Spell_Application_Type_AoE:
 			CreateAoEArea(state, spell, pos, p.Id)
 		case GameDB.Spell_Application_Type_Cone:
-		case GameDB.Spell_Application_Type_Summon:			
+		case GameDB.Spell_Application_Type_Summon:	
+		case GameDB.Spell_Application_Type_Teleport:			
 		}
 	} else {
 		clEntry := &PublicMatchState_CombatLogEntry {

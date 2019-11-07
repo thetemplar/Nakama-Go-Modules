@@ -24,6 +24,7 @@ type Spell struct {
 	CastTime 			float32
 	CastTimeChanneled	float32
 	Range				float32
+	NeedLoS				bool
 	FacingFront			bool
 
 	TargetAuraRequired 	int64
@@ -46,6 +47,7 @@ const (
 	Spell_Application_Type_AoE = 4
 	Spell_Application_Type_Cone = 5
 	Spell_Application_Type_Summon = 6
+	Spell_Application_Type_Teleport = 7
 )
 
 type Spell_Target_Type int8

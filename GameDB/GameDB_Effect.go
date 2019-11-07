@@ -6,6 +6,7 @@ type Effect struct {
 	Description 	string
 	Visible			bool
 	EffectID		int64
+	IconID			int64
 	Duration 		float32
 	Dispellable		bool
 	School 			Spell_SchoolType
