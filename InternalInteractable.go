@@ -604,8 +604,12 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell,
 			targetId = ""
 			target := p
 			distance := float32(999999)	
-			if spell.Target_Type == GameDB.Spell_Target_Type_AoE {
-				distance = p.Position.distance(targetPos)	
+			if spell.Target_Type == GameDB.Spell_Target_Type_AoE {	
+				if targetPos != nil {
+					distance = p.Position.distance(targetPos)	
+				} else {
+					failedMessage = "No Target Point!"
+				}
 			} else {
 				targetId = p.Target
 				target = state.Player[targetId]	
