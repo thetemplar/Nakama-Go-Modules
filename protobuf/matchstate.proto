@@ -89,11 +89,12 @@ message PublicMatchState {
 			string failed_message = 2;
 		}
 		message CombatLogEntry_Cast {
-			CombatLogEntry_Aura_Event event = 1;
-			enum CombatLogEntry_Aura_Event {
+			CombatLogEntry_Cast_Event event = 1;
+			enum CombatLogEntry_Cast_Event {
 				Start = 0;
 				Success = 1;
 				Failed = 2;
+				Interrupted = 3;
 			}
 			string failed_message = 2;
 		}
@@ -139,6 +140,8 @@ message PublicMatchState {
 		bool is_engaged = 15;
 		int32 team = 16;
 
+		//playername
+		string username = 17;
 	}
 
 	message Aura {

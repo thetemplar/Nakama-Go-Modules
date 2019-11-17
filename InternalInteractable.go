@@ -129,8 +129,8 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 	}
 
 	if p.CastingSpellId > 0 && state.GameDB.Spells[p.CastingSpellId].InterruptedBy != GameDB.Interrupt_Type_None && (vector.X != 0 || vector.Y != 0) {
-		fmt.Printf("cancelCast %v\n", p.CastingSpellId)
-		p.cancelCast(state)
+		fmt.Printf("cancelCast due to movement: %v\n", p.CastingSpellId)
+		p.interruptCast(state)
 	}
 
 	rotatedAdd := add.rotate(rotation)		
@@ -687,22 +687,33 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell,
 			p.startCastTimer(spell.Id, end, targetId)
 		}
 	}
+	clEntry := &PublicMatchState_CombatLogEntry {
+		Timestamp: state.PublicMatchState.Tick,
+		SourceId: p.Id,
+		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{spell.Id},
+		Source: PublicMatchState_CombatLogEntry_Spell,
+		Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
+			Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Start,
+		}},
+	}
+	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 }
 
-func (p *InternalInteractable) cancelCast(state *MatchState) {	
+func (p *InternalInteractable) interruptCast(state *MatchState) {	
 	clEntry := &PublicMatchState_CombatLogEntry {
 		Timestamp: state.PublicMatchState.Tick,
 		SourceId: p.Id,
 		SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceSpellId{p.CastingSpellId},
 		Source: PublicMatchState_CombatLogEntry_Spell,
 		Type: &PublicMatchState_CombatLogEntry_Cast{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Cast{
-			Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Failed,
+			Event: PublicMatchState_CombatLogEntry_CombatLogEntry_Cast_Interrupted,
 			FailedMessage: "Cast canceled by Movement!",
 		}},
 	}
 	state.PublicMatchState.Combatlog = append(state.PublicMatchState.Combatlog, clEntry)
 
 	p.stopCastTimer()
+	p.stopAutoattackTimer();
 }
 
 func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell, target interface{}) {

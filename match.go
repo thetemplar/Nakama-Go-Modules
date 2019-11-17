@@ -79,6 +79,7 @@ func (m *Match) MatchInit(ctx context.Context, logger runtime.Logger, db *sql.DB
 		},
 		Auras: make([]*PublicMatchState_Aura, 0),
 		Classname: "Ogre",
+		Username: "Ogre",
 		CurrentHealth: 100,
 		CurrentPower: 1,
 		Team: 0,
@@ -110,7 +111,7 @@ func (m *Match) MatchJoinAttempt(ctx context.Context, logger runtime.Logger, db 
 	return state, true, ""
 }
 
-func SpawnPlayer(state *MatchState, userId string, classname string) {
+func SpawnPlayer(state *MatchState, userId, classname, username string) {
 	if state.PublicMatchState.Interactable[userId] != nil || state.Player[userId] != nil || state.GameDB.Classes[classname] == nil {
 		return
 	}
@@ -125,6 +126,8 @@ func SpawnPlayer(state *MatchState, userId string, classname string) {
 		Classname: classname,
 		CurrentHealth: 100,
 		CurrentPower: 100,
+		Target: "",
+		Username: username,
 		Team: 1, //int32(state.PublicMatchState.Tick),
 	}
 	
@@ -255,11 +258,9 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				continue;
 			}
 			player.LastMovement = msg.GetMove()
-			player.stopAutoattackTimer();
-			player.stopCastTimer();
 			player.performMovement(state.(*MatchState), Vector2Df { X: msg.GetMove().XAxis, Y: msg.GetMove().YAxis }, msg.GetMove().Rotation, player.getClass(state.(*MatchState)).MovementSpeed)
 		case *Client_Message_SelectChar:
-			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname)
+			SpawnPlayer(state.(*MatchState), message.GetUserId(), msg.GetSelectChar().Classname, message.GetUsername())
 			player = state.(*MatchState).Player[message.GetUserId()];
 		default:
 			fmt.Printf("Unknown Client_Message_Character %v\n", t);
