@@ -350,7 +350,6 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 				if player.Position.distance(area.Position) <= state.(*MatchState).GameDB.Effects[area.EffectId].Type.(*GameDB.Effect_Persistent_Area_Aura).Radius {
 					//hit him
 					player.applyAbilityDamage(state.(*MatchState), state.(*MatchState).GameDB.Effects[area.EffectId], area.Creator)
-					
 				}
 			}
 			area.AreaTickCount++	

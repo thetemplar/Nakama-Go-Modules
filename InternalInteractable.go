@@ -102,7 +102,6 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 		return
 	}
 	if vector.length() > 1 {
-		fmt.Printf("* * %v * *", vector.length())
 		vector.X /= vector.length()
 		vector.Y /= vector.length()
 	}
@@ -300,7 +299,7 @@ func (p *InternalInteractable) applyAutoattackDamage(state *MatchState, creator 
 		SourceId: creator,
 		DestinationId: p.Id,
 		//SourceSpellEffectId: &PublicMatchState_CombatLogEntry_SourceEffectId{effect.Id},
-		Source: PublicMatchState_CombatLogEntry_Spell,
+		Source: PublicMatchState_CombatLogEntry_Autoattack,
 		Type: &PublicMatchState_CombatLogEntry_Damage{ &PublicMatchState_CombatLogEntry_CombatLogEntry_Damage{
 			Amount: dmgInput,
 			Resisted: 0,
@@ -638,7 +637,7 @@ func (p *InternalInteractable) startCast(state *MatchState, spell *GameDB.Spell,
 				failedMessage = "Out of Range!"
 			}
 	
-			if IntersectingBorders(p.Position, target.Position, state.Map) && failedMessage == "" {
+			if spell.NeedLoS && IntersectingBorders(p.Position, target.Position, state.Map) && failedMessage == "" {
 				failedMessage = "Not in Line of Sight!"
 			}
 		}
@@ -733,7 +732,7 @@ func (p *InternalInteractable) finishCast(state *MatchState, spell *GameDB.Spell
 		p.GlobalCooldown = spell.GlobalCooldown
 	}
 
-	if !IntersectingBorders(p.Position, pos, state.Map) {
+	if !spell.NeedLoS || !IntersectingBorders(p.Position, pos, state.Map) {
 		p.CurrentPower -= float32(spell.BaseCost);
 		p.CurrentPower -= float32(spell.CostPercentage) * p.getMaxMana(thisClass);
 		p.LastPowerDrainTick = state.PublicMatchState.Tick	

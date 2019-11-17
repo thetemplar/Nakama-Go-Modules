@@ -22,7 +22,8 @@ func Act_Ogre(state *MatchState, self *InternalInteractable) {
 
 	if self.npcState.(*NpcState_Ogre).lastSpell + int64(15 * state.TickRate) < state.PublicMatchState.Tick {
 		fire := state.GameDB.SearchSpellByName("Fire Zone");
-		self.startCast(state, fire, target.Position)
+		self.startCast(state, fire, &Vector2Df {X: target.Position.X, Y: target.Position.Y } )
+		self.npcState.(*NpcState_Ogre).lastSpell = state.PublicMatchState.Tick
 	}
 	
 	direction := Vector2Df {

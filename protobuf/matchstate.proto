@@ -26,11 +26,12 @@ message PublicMatchState {
 			Environment = 5;
 		}
 		oneof source_spell_effect_id {
-			int64 source_spell_id = 6;
-			int64 source_effect_id = 7;
+			int64 source_spell_id = 5;
+			int64 source_effect_id = 6;
 		}
 
 		oneof type {
+			CombatLogEntry_Message system_message = 7;
 			CombatLogEntry_Damage damage = 8;
 			CombatLogEntry_Missed missed_type = 9;
 			CombatLogEntry_Heal heal = 10;
@@ -38,7 +39,9 @@ message PublicMatchState {
 			CombatLogEntry_Aura aura = 12;
 			CombatLogEntry_Area area = 13;
 			CombatLogEntry_Cast cast = 14;
-			string system_message = 15;
+		}
+		message CombatLogEntry_Message {
+			string message = 1;
 		}
 
 		message CombatLogEntry_Damage {
