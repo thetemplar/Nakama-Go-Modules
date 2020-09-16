@@ -3,6 +3,7 @@ package graphmap
 import (
 	"github.com/bradfitz/slice"
 	"math"
+	"fmt"
 )
 
 type Vector struct {
@@ -99,4 +100,38 @@ func (t Triangle) IsInTriangle(x, y float32) (bool, float32, float32, float32) {
 	w2 := (dot00 * dot12 - dot01 * dot02) * invDenom
 
 	return (w1 >= 0) && (w2 >= 0) && (w1 + w2 < 1), w1, w2, w1+w2
+}
+
+func Intersection (p0, p1, p2, p3 *Vector) (bool, Vector) {
+	s1_x := p1.X - p0.X
+	s1_y := p1.Y - p0.Y
+	s2_x := p3.X - p2.X
+	s2_y := p3.Y - p2.Y
+
+	s := (-s1_y * (p0.X - p2.X) + s1_x * (p0.Y - p2.Y)) / (-s2_x * s1_y + s1_x * s2_y);
+	t := ( s2_x * (p0.Y - p2.Y) - s2_y * (p0.X - p2.X)) / (-s2_x * s1_y + s1_x * s2_y);
+	
+	fmt.Printf("Intersection: %v %v  - %v %v - found: %v %v : %v \n", p0, p1, p2, p3, s, t, (s >= 0 && s <= 1 && t >= 0 && t <= 1))
+
+	if s >= 0 && s <= 1 && t >= 0 && t <= 1 {
+        return true, Vector {X: p0.X + (t * s1_x), Y: p0.Y + (t * s1_y)};
+    }
+
+    return false, Vector {}; 
+}
+
+func (t Triangle) GetEdgeTowardsPoint(curX, curY, targetX, targetY float32) (bool, Vector) {
+	found1, point1 := Intersection(&t.A, &t.B, &Vector{X: curX, Y:curY}, &Vector{X: targetX, Y:targetY})
+	if found1 {
+		return true, point1
+	}
+	found2, point2 := Intersection(&t.A, &t.C, &Vector{X: curX, Y:curY}, &Vector{X: targetX, Y:targetY})
+	if found2 {
+		return true, point2
+	}
+	found3, point3 := Intersection(&t.B, &t.C, &Vector{X: curX, Y:curY}, &Vector{X: targetX, Y:targetY})
+	if found3 {
+		return true, point3
+	}
+    return false, Vector {}; 
 }

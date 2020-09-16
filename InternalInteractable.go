@@ -96,22 +96,33 @@ func (p *InternalInteractable) stopCastTimer(){
 
 //movement
 func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2Df, rotation float32, movementSpeed float32) {
+
 	p.Rotation = rotation;
+
 	//clamb [-1..1]
-	if vector.length() == 0 {
-		return
-	}
+	//if vector.length() == 0 {
+	//	return
+	//}
+
 	if vector.length() > 1 {
 		vector.X /= vector.length()
 		vector.Y /= vector.length()
 	}
 
-	vector.X *= (movementSpeed / float32(100))
-	vector.Y *= (movementSpeed / float32(100))
+	
+	backwards := 100	
+	/*TODO
+	if vector.Y < 0 {
+		backwards = 200
+	}*/
+
+	vector.X *= (movementSpeed / float32(backwards))
+	vector.Y *= (movementSpeed / float32(backwards))
 
 	mod := p.StatModifiers.MovementSpeedModifier
 	vector.X *= mod
 	vector.Y *= mod
+
 
 	moveMsgCount := p.MoveMessageCountThisFrame
 	if(p.Type == PublicMatchState_Interactable_NPC)	{
@@ -132,15 +143,19 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 		p.interruptCast(state)
 	}
 
-	rotatedAdd := add.rotate(rotation)		
+	rotatedAdd := add.rotate(rotation)	
+	
+	fmt.Printf("rotatedAdd: (%v | %v | %v) %v | %v\n", vector.X, vector.Y, rotation, rotatedAdd.X, rotatedAdd.Y)
 
-	p.Position.X += rotatedAdd.X;
-	p.Position.Y += rotatedAdd.Y;
-	p.Rotation = rotation;
+	p.Position.X += rotatedAdd.X
+	p.Position.Y += rotatedAdd.Y
+	p.Rotation = rotation
 
+	oldTriangle := int64(p.TriangleIndex)
 	//am i still in my triangle?	
 	if p.TriangleIndex >= 0 {
 		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].IsInTriangle(p.Position.X, p.Position.Y)
+		fmt.Printf("isItIn: %v\n", isItIn)
 		if !isItIn {
 			p.TriangleIndex = -1
 		}
@@ -154,14 +169,18 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 			isItIn, _, _, _ := triangle.IsInTriangle(p.Position.X, p.Position.Y)
 			if isItIn {
 				p.TriangleIndex = int64(i)
+				fmt.Printf("TriangleIndex: %v\n", p.TriangleIndex)
 				found = true
 				break;
 			}
 		}
 		if !found {
-			p.Position.X -= rotatedAdd.X;
-			p.Position.Y -= rotatedAdd.Y;
+			check, point := state.Map.Triangles[oldTriangle].GetEdgeTowardsPoint(p.Position.X, p.Position.Y, p.Position.X - rotatedAdd.X, p.Position.Y - rotatedAdd.Y)
 
+			fmt.Printf("oldTriangle: %v - found? %v \n", oldTriangle, check)
+			p.Position.X = point.X;
+			p.Position.Y = point.Y;
+			p.TriangleIndex = int64(oldTriangle)
 			//better: find edge between this triangle and destination point, then move along the edge
 		} 
 	}	
