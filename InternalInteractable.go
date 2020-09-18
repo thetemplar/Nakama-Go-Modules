@@ -145,45 +145,91 @@ func (p *InternalInteractable) performMovement(state *MatchState, vector Vector2
 
 	rotatedAdd := add.rotate(rotation)	
 	
-	fmt.Printf("rotatedAdd: (%v | %v | %v) %v | %v\n", vector.X, vector.Y, rotation, rotatedAdd.X, rotatedAdd.Y)
+	//fmt.Printf("rotatedAdd: (%v | %v | %v) %v | %v\n", vector.X, vector.Y, rotation, rotatedAdd.X, rotatedAdd.Y)
 
-	p.Position.X += rotatedAdd.X
-	p.Position.Y += rotatedAdd.Y
+	//oldTriangle := int64(p.TriangleIndex)
+
 	p.Rotation = rotation
+	
+	startPoint := Vector2Df {
+		X: p.Position.X,
+		Y: p.Position.Y,
+	}	
+	targetPoint := Vector2Df {
+		X: p.Position.X + rotatedAdd.X,
+		Y: p.Position.Y + rotatedAdd.Y,
+	}
+	
+	if p.TriangleIndex < 0 {
+		_, n := state.Map.GetTriangle(targetPoint.X, targetPoint.Y)			
+		p.TriangleIndex = n
+		//fmt.Printf("no current triangle!? now -> %v \n", p.TriangleIndex)
+	}
 
-	oldTriangle := int64(p.TriangleIndex)
-	//am i still in my triangle?	
+	//do i stay in my triangle?
 	if p.TriangleIndex >= 0 {
-		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].IsInTriangle(p.Position.X, p.Position.Y)
-		fmt.Printf("isItIn: %v\n", isItIn)
-		if !isItIn {
-			p.TriangleIndex = -1
+		isItIn, _, _, _ := state.Map.Triangles[p.TriangleIndex].IsInTriangle(targetPoint.X, targetPoint.Y)
+		if isItIn {
+			p.Position.X += rotatedAdd.X
+			p.Position.Y += rotatedAdd.Y
+
+			//fmt.Printf("i stay in my triangle %v at destination\n", p.TriangleIndex)
+			return
+		} else {
+			found, n := state.Map.GetTriangle(targetPoint.X, targetPoint.Y)
+			if found && !IntersectingBorders(&startPoint, &targetPoint, state.Map) {			
+				p.TriangleIndex = n
+
+				p.Position.X += rotatedAdd.X
+				p.Position.Y += rotatedAdd.Y
+
+				//fmt.Printf("found new triangle at destination with LoS %v\n", p.TriangleIndex)	
+				return
+			} else {
+				p.TriangleIndex = -1
+				//fmt.Printf("no triangle found at destination \n")
+			}
+		}
+	}
+	
+	//get all borders with the minimal distance to the player (can be multiple)
+	dist := float64(-1)
+	bIds := map[int]float64{}
+	for i, b := range state.Map.Borders {			
+		_, projection := b.MinDistance(startPoint.X, startPoint.Y)
+		distance := math.Round(math.Sqrt(math.Pow(float64(projection.X - startPoint.X), 2) + math.Pow(float64(projection.Y - startPoint.Y), 2))*100000)/100000
+
+		if dist == -1 {
+			dist = distance
+		}
+		if distance == dist {
+			bIds[i] = distance
+		}
+		if distance < dist {
+			bIds = make(map[int]float64)
+			bIds[i] = distance
+			dist = distance
+		}
+	}
+	
+	//get the border with the minimal distance to the target point from the list above
+	dist = -1
+	for i := range bIds {			
+		_, projection := state.Map.Borders[i].MinDistance(targetPoint.X, targetPoint.Y)
+		bIds[i] = math.Sqrt(math.Pow(float64(projection.X - targetPoint.X), 2) + math.Pow(float64(projection.Y - targetPoint.Y), 2))
+		if dist == -1 {
+			dist = bIds[i]
+		}
+		if bIds[i] <= dist {
+			p.Position.X = projection.X
+			p.Position.Y = projection.Y
 		}
 	}
 
-	//no current triangle_index?
-	if p.TriangleIndex < 0 {
-		//find triangle I am in
-		found := false
-		for i, triangle := range state.Map.Triangles {
-			isItIn, _, _, _ := triangle.IsInTriangle(p.Position.X, p.Position.Y)
-			if isItIn {
-				p.TriangleIndex = int64(i)
-				fmt.Printf("TriangleIndex: %v\n", p.TriangleIndex)
-				found = true
-				break;
-			}
-		}
-		if !found {
-			check, point := state.Map.Triangles[oldTriangle].GetEdgeTowardsPoint(p.Position.X, p.Position.Y, p.Position.X - rotatedAdd.X, p.Position.Y - rotatedAdd.Y)
-
-			fmt.Printf("oldTriangle: %v - found? %v \n", oldTriangle, check)
-			p.Position.X = point.X;
-			p.Position.Y = point.Y;
-			p.TriangleIndex = int64(oldTriangle)
-			//better: find edge between this triangle and destination point, then move along the edge
-		} 
-	}	
+	found, n := state.Map.GetTriangle(p.Position.X, p.Position.Y)
+	if found {
+		p.TriangleIndex = n
+	}
 }
 
 func (p *InternalInteractable) rotateTowardsTarget(targetPos *Vector2Df) {

@@ -436,7 +436,7 @@ func (m *Match) MatchLoop(ctx context.Context, logger runtime.Logger, db *sql.DB
 			if player.Presence == nil {
 				continue
 			}
-			fmt.Printf("Player %v at: %v | %v\n", player.Id, player.Position.X, player.Position.Y)
+			fmt.Printf("Player %v at: %v in: %v\n", player.Id, player.Position, player.TriangleIndex)
 		}
 
 		fmt.Printf(" _ _ _ _ _ new tick %v _ _ _ _ _\n", tick+1)
